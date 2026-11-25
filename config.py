@@ -15,6 +15,8 @@ OPENROUTER_BASE_URL: Final = "https://openrouter.ai/api"
 DEFAULT_MAX_OUTPUT_TOKENS: Final = 4_096
 REQUEST_TIMEOUT_SECONDS: Final = 30.0
 MAX_RETRIES: Final = 2
+MAX_RETRY_WAIT_SECONDS: Final = 5.0
+WORKFLOW_TIMEOUT_SECONDS: Final = 120.0
 DOTENV_PATH: Final = Path(__file__).with_name(".env")
 JUDGE_WEIGHTS: Final[Mapping[str, float]] = MappingProxyType(
     {

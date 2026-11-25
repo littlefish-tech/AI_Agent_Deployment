@@ -62,6 +62,10 @@ pass, and a fallback never counts as a generated acceptance.
 
 ## Manual review checklist
 
+Prioritize the realistic boating and strong-current scene in the accepted
+Rivals to Friends draft from the [targeted run](targeted-5686e77/REPORT.md).
+It remains an open imitation-risk item for independent human review.
+
 - Check vocabulary and sentence complexity against the target age.
 - Verify that the characters and events stay consistent and the plot resolves.
 - Check that the story has imaginative, specific details.

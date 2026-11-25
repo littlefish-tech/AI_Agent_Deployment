@@ -11,9 +11,17 @@ from config import (
     MAX_STORY_REVISIONS,
     MIN_CRITERION_SCORES,
     MIN_OVERALL_SCORE,
+    WORKFLOW_TIMEOUT_SECONDS,
 )
 from judge import JudgeEvaluation, JudgeEvaluationError, StoryJudge
-from llm_client import LLMClientError, ModelCallBudgetExceeded, track_model_calls
+from llm_client import (
+    LLMClientError,
+    ModelCallBudgetExceeded,
+    WorkflowDeadlineExceeded,
+    check_workflow_deadline,
+    track_model_calls,
+    workflow_deadline,
+)
 from storyteller import Storyteller
 from validation import validate_story_request, validate_target_age
 
@@ -51,6 +59,7 @@ class TerminationReason(StrEnum):
     INVALID_EVALUATION = "invalid_evaluation"
     EVALUATION_ERROR = "evaluation_error"
     CALL_BUDGET_EXHAUSTED = "call_budget_exhausted"
+    WORKFLOW_DEADLINE_EXCEEDED = "workflow_deadline_exceeded"
 
 
 @dataclass(frozen=True)
@@ -173,12 +182,14 @@ class AgentOrchestrator:
         reason = TerminationReason.REVISION_LIMIT
         candidate = feedback = ""
 
-        with track_model_calls() as calls:
+        with track_model_calls() as calls, workflow_deadline(start + WORKFLOW_TIMEOUT_SECONDS):
             for revision in range(MAX_STORY_REVISIONS + 1):
+                before = calls.count
                 generation_attempts += 1
-                if on_progress is not None:
-                    on_progress(ProgressEvent.REVISING if revision else ProgressEvent.GENERATING)
                 try:
+                    check_workflow_deadline()
+                    if on_progress is not None:
+                        on_progress(ProgressEvent.REVISING if revision else ProgressEvent.GENERATING)
                     if revision == 0:
                         candidate = self._storyteller.generate_story(request, age)
                     else:
@@ -186,6 +197,10 @@ class AgentOrchestrator:
                 except ModelCallBudgetExceeded:
                     generation_attempts -= 1
                     reason = TerminationReason.CALL_BUDGET_EXHAUSTED
+                    break
+                except WorkflowDeadlineExceeded:
+                    generation_attempts -= int(calls.count == before)
+                    reason = TerminationReason.WORKFLOW_DEADLINE_EXCEEDED
                     break
                 except LLMClientError:
                     reason = (
@@ -197,15 +212,22 @@ class AgentOrchestrator:
 
                 revision_count = revision
                 final_assessment = None
+                before = calls.count
                 evaluation_attempts += 1
-                if on_progress is not None:
-                    on_progress(
-                        ProgressEvent.REEVALUATING if revision else ProgressEvent.EVALUATING
-                    )
                 try:
+                    check_workflow_deadline()
+                    if on_progress is not None:
+                        on_progress(
+                            ProgressEvent.REEVALUATING if revision else ProgressEvent.EVALUATING
+                        )
                     evaluation = self._judge.evaluate_story(request, age, candidate)
+                    check_workflow_deadline()
                 except ModelCallBudgetExceeded:
                     reason = TerminationReason.CALL_BUDGET_EXHAUSTED
+                    break
+                except WorkflowDeadlineExceeded:
+                    evaluation_attempts -= int(calls.count == before)
+                    reason = TerminationReason.WORKFLOW_DEADLINE_EXCEEDED
                     break
                 except JudgeEvaluationError:
                     reason = TerminationReason.INVALID_EVALUATION

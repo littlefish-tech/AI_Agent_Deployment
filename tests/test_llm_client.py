@@ -9,7 +9,16 @@ import pytest
 from anthropic.types import TextBlock, ThinkingBlock
 
 import config
-from llm_client import LLMClient, LLMClientError, track_model_calls
+import llm_client
+from llm_client import (
+    LLMClient,
+    LLMClientError,
+    WorkflowDeadlineExceeded,
+    track_model_calls,
+    workflow_deadline,
+)
+
+bounded_sdk = llm_client._BoundedAnthropic
 
 
 @pytest.fixture(autouse=True)
@@ -83,7 +92,7 @@ def test_credential_sources(
     else:
         monkeypatch.setenv("ANTHROPIC_API_KEY", env_value)
 
-    with patch("llm_client.Anthropic") as constructor:
+    with patch("llm_client._BoundedAnthropic") as constructor:
         if env_value == " ":
             with pytest.raises(LLMClientError, match="Set ANTHROPIC_API_KEY"):
                 LLMClient()
@@ -129,8 +138,8 @@ def test_openrouter_messages_route_and_json_schema(
 
     with httpx2.Client(transport=httpx2.MockTransport(respond)) as transport:
         with patch(
-            "llm_client.Anthropic",
-            side_effect=lambda **kwargs: anthropic.Anthropic(http_client=transport, **kwargs),
+            "llm_client._BoundedAnthropic",
+            side_effect=lambda **kwargs: bounded_sdk(http_client=transport, **kwargs),
         ):
             client = LLMClient()
             assert client.generate_text(system_prompt="System", user_message="User") == "{}"
@@ -159,7 +168,7 @@ def test_openrouter_does_not_use_direct_key(
     monkeypatch.setenv("LLM_PROVIDER", "openrouter")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "direct-test-token")
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
-    with patch("llm_client.Anthropic") as constructor:
+    with patch("llm_client._BoundedAnthropic") as constructor:
         with pytest.raises(LLMClientError, match="Set OPENROUTER_API_KEY"):
             LLMClient()
     constructor.assert_not_called()
@@ -167,7 +176,7 @@ def test_openrouter_does_not_use_direct_key(
 
 def test_rejects_unknown_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("LLM_PROVIDER", "unsupported")
-    with patch("llm_client.Anthropic") as constructor:
+    with patch("llm_client._BoundedAnthropic") as constructor:
         with pytest.raises(LLMClientError, match="Set LLM_PROVIDER"):
             LLMClient()
     constructor.assert_not_called()
@@ -177,17 +186,19 @@ def test_sdk_retries_rate_limit_only_twice_and_counts_one_logical_call(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("ANTHROPIC_API_KEY", "mock-retry-credential")
+    sleep = Mock()
+    monkeypatch.setattr("anthropic._base_client.time.sleep", sleep)
     attempts = Mock(
         side_effect=lambda request: httpx2.Response(
             429,
-            headers={"retry-after-ms": "1"},
+            headers={"retry-after": "3600"},
             json={"type": "error", "error": {"type": "rate_limit_error", "message": "Rate limited"}},
         )
     )
     with httpx2.Client(transport=httpx2.MockTransport(attempts)) as transport:
         with patch(
-            "llm_client.Anthropic",
-            side_effect=lambda **kwargs: anthropic.Anthropic(http_client=transport, **kwargs),
+            "llm_client._BoundedAnthropic",
+            side_effect=lambda **kwargs: bounded_sdk(http_client=transport, **kwargs),
         ):
             client = LLMClient()
             with track_model_calls(limit=1) as budget, track_model_calls() as inner:
@@ -195,12 +206,64 @@ def test_sdk_retries_rate_limit_only_twice_and_counts_one_logical_call(
                     client.generate_text(system_prompt="System", user_message="User")
     assert budget.count == inner.count == 1
     assert attempts.call_count == 3
+    assert [attempt.args[0] for attempt in sleep.call_args_list] == [5.0, 5.0]
+
+
+@pytest.mark.parametrize(
+    ("deadline", "oversleep", "timeouts", "sleeps"),
+    [
+        (106.0, 0.0, [6.0, 1.0], [5.0]),
+        (105.0, 0.0, [5.0], []),
+        (106.0, 1.0, [6.0], [5.0]),
+    ],
+)
+def test_sdk_retry_wait_and_attempts_respect_the_workflow_deadline(
+    monkeypatch: pytest.MonkeyPatch, deadline: float, oversleep: float,
+    timeouts: list[float], sleeps: list[float],
+) -> None:
+    now = 100.0
+    observed_timeouts: list[float] = []
+    slept: list[float] = []
+
+    def sleep(seconds: float) -> None:
+        nonlocal now
+        slept.append(seconds)
+        now += seconds + oversleep
+
+    def respond(request: httpx2.Request) -> httpx2.Response:
+        observed_timeouts.append(request.extensions["timeout"]["read"])
+        if len(observed_timeouts) == 1:
+            return httpx2.Response(429, headers={"retry-after": "3600"}, json={})
+        return httpx2.Response(
+            200,
+            json={
+                "id": "msg_test", "model": config.MODEL_ID, "type": "message",
+                "role": "assistant", "stop_reason": "end_turn",
+                "content": [{"type": "text", "text": "A story"}],
+                "usage": {"input_tokens": 1, "output_tokens": 1},
+            },
+        )
+
+    monkeypatch.setattr(llm_client, "perf_counter", lambda: now)
+    monkeypatch.setattr("anthropic._base_client.time.sleep", sleep)
+    with httpx2.Client(transport=httpx2.MockTransport(respond)) as transport:
+        client = LLMClient(bounded_sdk(api_key="mock-key", http_client=transport))
+        with track_model_calls() as calls, workflow_deadline(deadline):
+            if len(timeouts) == 2:
+                assert client.generate_text(system_prompt="System", user_message="User") == "A story"
+            else:
+                with pytest.raises(WorkflowDeadlineExceeded):
+                    client.generate_text(system_prompt="System", user_message="User")
+
+    assert calls.count == 1
+    assert observed_timeouts == timeouts
+    assert slept == sleeps
 
 
 def test_missing_credentials(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(config, "DOTENV_PATH", tmp_path / ".env")
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    with patch("llm_client.Anthropic") as constructor:
+    with patch("llm_client._BoundedAnthropic") as constructor:
         with pytest.raises(LLMClientError, match="Set ANTHROPIC_API_KEY"):
             LLMClient()
     constructor.assert_not_called()

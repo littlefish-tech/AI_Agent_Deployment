@@ -7,6 +7,9 @@ import anthropic
 import pytest
 from anthropic.types import TextBlock
 
+import judge as judge_module
+import llm_client
+import orchestrator
 from judge import JudgeEvaluation, JudgeEvaluationError, StoryJudge
 from llm_client import LLMClient, LLMClientError
 from orchestrator import AgentOrchestrator, AgentResult, FALLBACK_STORY, TerminationReason
@@ -67,6 +70,69 @@ def assert_fallback(result: AgentResult, reason: TerminationReason) -> None:
     assert result.used_fallback
     assert result.delivered_evaluation is None
     assert result.termination_reason is reason
+
+
+@pytest.mark.parametrize(
+    ("expired_stage", "expected_calls", "expected_revisions", "expected_evaluations"),
+    [("correction", 2, 0, 1), ("revision", 2, 0, 1), ("reevaluation", 4, 1, 2)],
+)
+def test_deadline_covers_correction_revision_and_late_verdicts(
+    monkeypatch: pytest.MonkeyPatch, expired_stage: str, expected_calls: int,
+    expected_revisions: int, expected_evaluations: int,
+) -> None:
+    now = 100.0
+    monkeypatch.setattr(orchestrator, "perf_counter", lambda: now)
+    monkeypatch.setattr(llm_client, "perf_counter", lambda: now)
+    original_prompts = judge_module.story_judge_prompts
+
+    def prompts(request: str, age: int, story: str, *, correction: bool) -> tuple[str, str]:
+        nonlocal now
+        if correction:
+            now += orchestrator.WORKFLOW_TIMEOUT_SECONDS
+        return original_prompts(request, age, story, correction=correction)
+
+    def progress(event: orchestrator.ProgressEvent) -> None:
+        nonlocal now
+        if event is orchestrator.ProgressEvent.REVISING and expired_stage == "revision":
+            now += orchestrator.WORKFLOW_TIMEOUT_SECONDS
+
+    sdk = Mock(spec=anthropic.Anthropic)
+
+    def respond(**kwargs: object) -> SimpleNamespace:
+        nonlocal now
+        call_number = sdk.messages.create.call_count
+        if call_number == 4:
+            now += orchestrator.WORKFLOW_TIMEOUT_SECONDS
+        if call_number in (1, 3):
+            response = DRAFTS[call_number // 2]
+        elif expired_stage == "correction":
+            response = "invalid JSON"
+        else:
+            response = json.dumps({
+                "safety_pass": True,
+                "scores": dict.fromkeys(SCORES, 4) if call_number == 2 else SCORES,
+                "strengths": ["A clear premise."],
+                "feedback": ["Give the fox a more distinctive challenge."],
+                "safety_issues": [],
+            })
+        return SimpleNamespace(stop_reason="end_turn", content=[TextBlock(type="text", text=response)])
+
+    monkeypatch.setattr(judge_module, "story_judge_prompts", prompts)
+    sdk.messages.create.side_effect = respond
+    client = LLMClient(sdk)
+    agent = AgentOrchestrator(Storyteller(client), StoryJudge(client))
+
+    result = agent.run_agent(REQUEST, AGE, on_progress=progress)
+
+    assert_fallback(result, TerminationReason.WORKFLOW_DEADLINE_EXCEEDED)
+    assert result.logical_model_calls == sdk.messages.create.call_count == expected_calls
+    assert result.revision_count == expected_revisions
+    assert result.generation_attempts == expected_revisions + 1
+    assert result.evaluation_attempts == expected_evaluations
+    assert result.latency_seconds == orchestrator.WORKFLOW_TIMEOUT_SECONDS
+    assert len(result.evaluation_history) == int(expired_stage != "correction")
+    if expired_stage == "reevaluation":
+        assert result.final_candidate_evaluation is None
 
 
 @pytest.mark.parametrize("revisions", [0, 1, 2])

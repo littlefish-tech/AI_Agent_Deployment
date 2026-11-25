@@ -10,6 +10,7 @@ from anthropic.types import TextBlock
 
 import llm_client
 import main
+import orchestrator
 from config import MAX_STORY_REQUEST_LENGTH, MODEL_ID
 from orchestrator import AgentResult, CandidateAssessment, FALLBACK_STORY, TerminationReason
 
@@ -29,7 +30,7 @@ SCORES = {
 def sdk(monkeypatch: pytest.MonkeyPatch) -> Mock:
     mock_sdk = Mock(spec=anthropic.Anthropic)
     monkeypatch.setenv("LLM_PROVIDER", "anthropic")
-    monkeypatch.setattr(llm_client, "Anthropic", Mock(return_value=mock_sdk))
+    monkeypatch.setattr(llm_client, "_BoundedAnthropic", Mock(return_value=mock_sdk))
     monkeypatch.setattr(llm_client, "get_anthropic_api_key", lambda: TEST_CREDENTIAL)
     return mock_sdk
 
@@ -105,7 +106,7 @@ def test_reprompts_before_initializing_any_api_client(
     pending = iter(answers)
 
     def respond(prompt: str) -> str:
-        llm_client.Anthropic.assert_not_called()
+        llm_client._BoundedAnthropic.assert_not_called()
         agent.run_agent.assert_not_called()
         return next(pending)
 
@@ -115,7 +116,7 @@ def test_reprompts_before_initializing_any_api_client(
 
     assert expected_text in capsys.readouterr().out
     agent.run_agent.assert_called_once_with(REQUEST, expected_age, on_progress=main._report_progress)
-    assert llm_client.Anthropic.call_count == 1
+    assert llm_client._BoundedAnthropic.call_count == 1
     sdk.messages.create.assert_not_called()
 
 
@@ -167,7 +168,7 @@ def test_input_interruption_exits_without_calling_api(
         assert "Good night!" in output.out
     else:
         assert "cancelled" in output.err
-    llm_client.Anthropic.assert_not_called()
+    llm_client._BoundedAnthropic.assert_not_called()
     sdk.messages.create.assert_not_called()
 
 
@@ -182,7 +183,7 @@ def test_missing_api_key_reports_setup_without_sdk_call(
     output = capsys.readouterr()
     assert "Set ANTHROPIC_API_KEY" in output.err
     assert "Execution details" not in output.out
-    llm_client.Anthropic.assert_not_called()
+    llm_client._BoundedAnthropic.assert_not_called()
     sdk.messages.create.assert_not_called()
 
 
@@ -328,6 +329,66 @@ def test_unexpected_errors_are_not_swallowed(
 
     with pytest.raises(RuntimeError, match="Unexpected programming error"):
         main.main([])
+
+
+@pytest.mark.parametrize("argv", [[], ["--debug"]])
+def test_sanitizes_displayed_story_without_changing_the_judged_text(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+    sdk: Mock, argv: list[str],
+) -> None:
+    feed_input(monkeypatch, REQUEST, "7")
+    draft = (
+        "\x1b[31m**Étoile & 月**\x1b[0m\r\n\r\n"
+        "A quiet \x1b]8;;https://example.test\x1b\\path\x1b]8;;\x07.\x00\x08\x7f\r\n"
+        "\x9b2J“Good night,” said the fox. 💤\x1bPdiscard this\x1b\\"
+        "\x1b]52;unfinished clipboard sequence\n"
+        "The End."
+    )
+    sdk.messages.create.side_effect = [response(draft), response(verdict())]
+
+    assert main.main(argv) == 0
+
+    output = capsys.readouterr().out
+    assert "Étoile & 月\n\nA quiet path.\n“Good night,” said the fox. 💤\nThe End." in output
+    assert not any(char in output for char in "\x00\x07\x08\x0d\x1b\x7f\x9b")
+    assert ("Execution details" in output) is bool(argv)
+    judge_message = sdk.messages.create.call_args.kwargs["messages"][0]["content"]
+    assert json.loads(judge_message)["story"] == draft
+
+
+@pytest.mark.parametrize("provider_error", [False, True])
+def test_deadline_displays_the_prewritten_fallback_and_actual_metrics(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], sdk: Mock,
+    provider_error: bool,
+) -> None:
+    feed_input(monkeypatch, REQUEST, "7")
+    now = 100.0
+
+    def late_generation(**kwargs: object) -> SimpleNamespace:
+        nonlocal now
+        now += orchestrator.WORKFLOW_TIMEOUT_SECONDS + 1
+        if provider_error:
+            request = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+            raise anthropic.APITimeoutError(request=request)
+        return response("Undeliverable late draft")
+
+    monkeypatch.setattr(orchestrator, "perf_counter", lambda: now)
+    monkeypatch.setattr(llm_client, "perf_counter", lambda: now)
+    sdk.messages.create.side_effect = late_generation
+
+    assert main.main(["--debug"]) == 0
+
+    output = capsys.readouterr().out
+    assert "The story service ran out of time." in output
+    assert FALLBACK_STORY in output
+    assert "Undeliverable late draft" not in output
+    assert "Evaluating story quality" not in output
+    assert "Termination reason: workflow_deadline_exceeded" in output
+    assert "Logical LLM calls: 1" in output
+    assert f"Execution latency: {orchestrator.WORKFLOW_TIMEOUT_SECONDS + 1:.2f}s" in output
+    assert sdk.messages.create.call_count == 1
+
+
 
 
 def test_request_at_length_limit_is_accepted(

@@ -11,6 +11,7 @@ provide enough benefit to justify their overhead.
 """
 
 import argparse
+import re
 import sys
 from collections.abc import Sequence
 
@@ -38,7 +39,18 @@ _FALLBACK_REASONS = {
     TerminationReason.REFINEMENT_ERROR: "The story service could not finish revising the draft.",
     TerminationReason.EVALUATION_ERROR: "The story service could not finish its checks.",
     TerminationReason.INVALID_EVALUATION: "The story checks returned an unusable result.",
+    TerminationReason.WORKFLOW_DEADLINE_EXCEEDED: "The story service ran out of time.",
 }
+
+# Strip terminal sequences before removing their introducers and other C0/C1 controls.
+_TERMINAL_CONTROLS = re.compile(
+    r"(?:\x1b\]|\x9d)[^\n]*?(?:\x07|\x1b\\|\x9c|(?=\n|\Z))"  # OSC
+    r"|(?:\x1b[PX^_]|\x90|\x98|\x9e|\x9f)[^\n]*?(?:\x1b\\|\x9c|(?=\n|\Z))"
+    r"|(?:\x1b\[|\x9b)[0-?]*[ -/]*[@-~]"  # CSI
+    r"|(?:\x1bO|\x8f)[@-~]"  # SS3
+    r"|\x1b[ -/]*[0-~]"
+    r"|[\x00-\x08\x0b-\x1f\x7f-\x9f]"
+)
 
 
 def _read_request() -> str:
@@ -76,8 +88,9 @@ def _report_progress(event: ProgressEvent) -> None:
 
 
 def _print_story(story: str) -> None:
-    """Remove Markdown bold markers from the title for plain-text terminals."""
-    title, separator, body = story.partition("\n")
+    """Print a terminal-safe copy, retaining Unicode and paragraph breaks."""
+    clean_story = _TERMINAL_CONTROLS.sub("", story.replace("\r\n", "\n"))
+    title, separator, body = clean_story.partition("\n")
     if len(title) > 4 and title.startswith("**") and title.endswith("**"):
         title = title[2:-2]
     print(f"\n{title}{separator}{body}")

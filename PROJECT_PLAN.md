@@ -610,12 +610,47 @@ single runs and the same-model judge limit conclusions about scoring consistency
 causal improvement, and safety. The updated ten-case run awaits user review
 and separate approval.
 
+#### Runtime hardening and coverage
+
+The CLI strips terminal escape sequences and unsafe control characters from its
+display copy in normal and debug modes. Normal Unicode and paragraph breaks
+are preserved. The judge still receives the original draft.
+
+A 120-second cooperative deadline spans each story workflow. The application
+checks it before logical model calls and each SDK attempt, including judge
+corrections and SDK retries. The pinned SDK retains its retry policy and limit
+of two retries. Its delay is capped at five seconds, and a retry is skipped
+when that bounded wait would consume the remaining time. The current
+attempt's HTTP phase timeout is capped by the remaining workflow time and
+the existing 30-second setting. An in-flight synchronous call can overrun
+the deadline. Late results are discarded, and fallback, actual elapsed time,
+and attempted logical calls are reported with `workflow_deadline_exceeded`.
+The evaluator records this as a per-case error and can continue with other
+cases. No additional retry loop was introduced.
+
+Installed pytest-cov 7.1.0 and ran the full offline suite with both synchronous
+and asynchronous HTTP transport guards. All 200 tests passed in 5.25 seconds,
+with zero failures, skips, or external HTTP calls. Regression cases exercise
+control sequences and Unicode in both CLI modes, deadline fallback and
+metrics, provider-directed waits and oversleeping, correction and refinement
+boundaries, and evaluator error accounting. Application-only statement and
+branch coverage was 98%. Coverage was 93% for `evaluate.py`, 99% for
+`llm_client.py`, 98% for `main.py`, and 100% each for `config.py`, `judge.py`,
+`orchestrator.py`, `prompts.py`, `storyteller.py`, and `validation.py`.
+
+Model and provider configuration, prompts, safety and scoring policies, and
+the two-revision cap remain the same. The historical, pilot, and targeted
+evaluation artifacts were verified unchanged. No paid calls were made.
+
 ### Known issues
 
 - The old root `system-flow.svg` is deleted in the working tree. Current
   documentation links to the replacement in `docs/`.
 - Live orchestrator access to the required model was verified through
   OpenRouter. Direct Anthropic access and a live CLI run remain unverified.
+- Independent human review of the accepted Rivals to Friends draft's boating
+  scene is pending because of potential imitation risk near rocks and a strong
+  current. The model judge passed that draft.
 - The CLI handles one request per run. An interactive repeat loop and
   user-requested changes are deferred. Any future edit flow must reevaluate
   the changed story before release.

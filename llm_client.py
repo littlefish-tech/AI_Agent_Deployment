@@ -1,9 +1,13 @@
 """Shared text-only client for the storyteller and judge."""
 
+from __future__ import annotations
+
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
+from time import perf_counter
+from typing import TYPE_CHECKING
 
 from anthropic import (
     Anthropic,
@@ -22,6 +26,7 @@ from config import (
     ANTHROPIC_BASE_URL,
     DEFAULT_MAX_OUTPUT_TOKENS,
     MAX_RETRIES,
+    MAX_RETRY_WAIT_SECONDS,
     MODEL_ID,
     OPENROUTER_BASE_URL,
     OPENROUTER_MODEL_ID,
@@ -29,6 +34,19 @@ from config import (
     get_anthropic_api_key,
     get_llm_provider,
     get_openrouter_api_key,
+)
+
+if TYPE_CHECKING:
+    from anthropic._models import FinalRequestOptions
+    from httpx2 import Headers
+
+_API_ERRORS = (
+    ((AuthenticationError, PermissionDeniedError), "Anthropic rejected the credentials or access."),
+    (RateLimitError, "Anthropic's rate limit was reached."),
+    ((APITimeoutError, RequestTimeoutError), "The Anthropic request timed out."),
+    (APIConnectionError, "Could not connect to Anthropic."),
+    (InternalServerError, "Anthropic returned a server error."),
+    (NotFoundError, "The required Anthropic model is unavailable."),
 )
 
 
@@ -66,6 +84,59 @@ class ModelCallBudgetExceeded(RuntimeError):
     """The logical call limit was reached before a request was sent."""
 
 
+class WorkflowDeadlineExceeded(RuntimeError):
+    """The workflow no longer has time for a model call or its result."""
+
+
+_active_deadline: ContextVar[float | None] = ContextVar("active_deadline", default=None)
+
+
+@contextmanager
+def workflow_deadline(deadline: float) -> Iterator[None]:
+    """Share a monotonic deadline across all model calls for one story."""
+    outer = _active_deadline.get()
+    token = _active_deadline.set(deadline if outer is None else min(outer, deadline))
+    try:
+        yield
+    finally:
+        _active_deadline.reset(token)
+
+
+def check_workflow_deadline() -> float | None:
+    """Return remaining workflow seconds, or raise once time has elapsed."""
+    deadline = _active_deadline.get()
+    if deadline is None:
+        return None
+    remaining = deadline - perf_counter()
+    if remaining <= 0:
+        raise WorkflowDeadlineExceeded("The story workflow ran out of time.")
+    return remaining
+
+
+class _BoundedAnthropic(Anthropic):
+    """Apply time limits at the pinned SDK's per-attempt and backoff hooks."""
+
+    def _prepare_options(self, options: FinalRequestOptions) -> FinalRequestOptions:
+        remaining = check_workflow_deadline()
+        if remaining is not None:
+            # Application clients configure a numeric timeout. This caps each HTTP phase.
+            options.timeout = min(REQUEST_TIMEOUT_SECONDS, remaining)
+        return super()._prepare_options(options)
+
+    def _calculate_retry_timeout(
+        self, remaining_retries: int, options: FinalRequestOptions,
+        response_headers: Headers | None = None,
+    ) -> float:
+        delay = min(
+            super()._calculate_retry_timeout(remaining_retries, options, response_headers),
+            MAX_RETRY_WAIT_SECONDS,
+        )
+        remaining = check_workflow_deadline()
+        if remaining is not None and delay >= remaining:
+            raise WorkflowDeadlineExceeded("The story workflow has no time for another retry.")
+        return delay
+
+
 class LLMClient:
     """Make synchronous, single-turn requests through a reusable Anthropic client."""
 
@@ -87,7 +158,7 @@ class LLMClient:
                 if not api_key:
                     raise LLMClientError("Set OPENROUTER_API_KEY in the environment or .env.")
                 self._model_id = OPENROUTER_MODEL_ID
-                client = Anthropic(
+                client = _BoundedAnthropic(
                     auth_token=api_key,
                     base_url=OPENROUTER_BASE_URL,
                     timeout=REQUEST_TIMEOUT_SECONDS,
@@ -96,7 +167,7 @@ class LLMClient:
             else:
                 if not api_key:
                     raise LLMClientError("Set ANTHROPIC_API_KEY in the environment or .env.")
-                client = Anthropic(
+                client = _BoundedAnthropic(
                     api_key=api_key,
                     base_url=ANTHROPIC_BASE_URL,
                     timeout=REQUEST_TIMEOUT_SECONDS,
@@ -123,6 +194,7 @@ class LLMClient:
         if type(max_output_tokens) is not int or max_output_tokens < 1:
             raise ValueError("max_output_tokens must be a positive integer.")
 
+        check_workflow_deadline()
         counters = _active_call_counters.get()
         if any(counter.limit is not None and counter.count >= counter.limit for counter in counters):
             raise ModelCallBudgetExceeded("The logical model call budget was exhausted.")
@@ -140,21 +212,18 @@ class LLMClient:
                     else {}
                 ),
             )
-        except (AuthenticationError, PermissionDeniedError):
-            raise LLMClientError("Anthropic rejected the credentials or access.") from None
-        except RateLimitError:
-            raise LLMClientError("Anthropic's rate limit was reached.") from None
-        except (APITimeoutError, RequestTimeoutError):
-            raise LLMClientError("The Anthropic request timed out.") from None
-        except APIConnectionError:
-            raise LLMClientError("Could not connect to Anthropic.") from None
-        except InternalServerError:
-            raise LLMClientError("Anthropic returned a server error.") from None
-        except NotFoundError:
-            raise LLMClientError("The required Anthropic model is unavailable.") from None
-        except APIError:
-            raise LLMClientError("The Anthropic request failed.") from None
+        except APIError as error:
+            try:
+                check_workflow_deadline()
+            except WorkflowDeadlineExceeded as deadline_error:
+                raise deadline_error from None
+            message = next(
+                (message for kind, message in _API_ERRORS if isinstance(error, kind)),
+                "The Anthropic request failed.",
+            )
+            raise LLMClientError(message) from None
 
+        check_workflow_deadline()
         if response.stop_reason in {"max_tokens", "model_context_window_exceeded"}:
             raise LLMClientError("Anthropic's response was truncated.")
         if response.stop_reason != "end_turn":

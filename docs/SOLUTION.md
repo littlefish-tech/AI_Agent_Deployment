@@ -188,17 +188,29 @@ can earn full alignment credit in the latter case.
    revision with the same rules and update any remaining gaps from that
    verdict. Allow **two revisions**, for up to three candidates.
 3. If no draft qualifies, a required model operation fails, a valid verdict
-   cannot be obtained, or the evaluation call budget is exhausted, return the
+   cannot be obtained, or a workflow deadline or call budget is reached, return the
    prewritten *The Last Little Lantern*. The fallback needs no model call or
    judge score. Invalid CLI input is corrected before any call. A client setup
    error produces a setup message and exits.
 
 Python controls the gates and limits so a model cannot vote itself past a safety
-failure or decide to keep looping. The SDK uses a 30-second timeout setting and
-up to two SDK retries. At application level, a first-pass success uses two
+failure or decide to keep looping. Each story has a cooperative 120-second
+deadline. The app checks remaining time before every logical call, including
+judge corrections, and before each SDK attempt. The SDK makes at most two
+retries. Its backoff is capped at five seconds, including provider-directed
+delays, and it skips a retry if the bounded wait would use all remaining time.
+Each attempt uses the smaller of the 30-second HTTP phase timeout and the
+remaining workflow time at attempt preparation. The synchronous request in
+progress can still overrun the workflow deadline. The application discards a
+late result and reports the actual elapsed time, logical calls initiated, and
+`workflow_deadline_exceeded` when delivering the fallback.
+
+At application level, a first-pass success uses two
 logical calls, and a case can use up to nine with all three candidates and one
 judge correction per candidate. The application releases only a generated
-draft with a passing assessment, and debug output and saved reports omit
+draft with a passing assessment. The CLI removes terminal control sequences
+from the displayed copy, preserving the story used for judging and ordinary
+Unicode and line breaks. Debug output and saved reports omit
 rejected drafts and raw judge feedback. These controls reduce risk. An LLM
 judge cannot guarantee child safety.
 
@@ -209,6 +221,14 @@ Install development dependencies and run pytest offline:
 ```sh
 python -m pip install -r requirements-dev.txt
 python -m pytest -q
+```
+
+To measure application-only statement and branch coverage:
+
+```sh
+python -m pytest -q --cov-branch --cov-report=term-missing \
+  --cov=config --cov=evaluate --cov=judge --cov=llm_client --cov=main \
+  --cov=orchestrator --cov=prompts --cov=storyteller --cov=validation
 ```
 
 The offline tests cover request validation, prompt construction, malformed
@@ -254,6 +274,13 @@ prompt-injection candidate at 2/5. The monster adventure met the 3/5 alignment
 floor but fell short on overall quality at 4.10/5. The pilot also found a
 nighttime tree-climbing scene worth independent age-specific review despite
 the judge's safety pass.
+
+The [targeted reevaluation](../evaluations/targeted-5686e77/REPORT.md) of the
+judge and refinement update recorded five accepted stories and two successful
+refinement sequences. Its Rivals to Friends draft depicts children racing
+small boats near rocks in a strong current. That potential imitation risk
+requires independent human review despite the judge's safety pass. The
+runtime hardening took place after those measurements.
 
 ### Measured example: Alice and Bob
 

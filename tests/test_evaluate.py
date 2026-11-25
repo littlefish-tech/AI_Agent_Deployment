@@ -63,6 +63,26 @@ def write_dataset(path: Path, payload: object) -> Path:
     return path
 
 
+def test_deadline_report_counts_error_and_does_not_stop_the_dataset() -> None:
+    agent = Mock()
+    agent.run_agent.side_effect = [
+        result(reason=TerminationReason.WORKFLOW_DEADLINE_EXCEEDED, calls=1),
+        result(assessment(4.5), accepted=True, reason=TerminationReason.ACCEPTED),
+    ]
+
+    rows = evaluate.run_cases(agent, CASES[:2], max_calls=5)
+
+    assert len(rows) == 2
+    assert rows[0].outcome == "evaluation_error"
+    assert rows[0].error == rows[0].termination_reason == "workflow_deadline_exceeded"
+    assert rows[0].used_fallback and rows[0].delivered_evaluation is None
+    assert rows[0].logical_calls == 1
+    assert rows[1].accepted
+    assert evaluate.aggregate(rows)["evaluation_error_rate"] == {
+        "value": 0.5, "numerator": 1, "denominator": 2,
+    }
+
+
 def test_bundled_dataset_and_subset() -> None:
     cases = evaluate.load_cases(evaluate.DEFAULT_DATASET)
     assert len(cases) == 10

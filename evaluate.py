@@ -28,6 +28,7 @@ _ERROR_REASONS = {
     TerminationReason.REFINEMENT_ERROR,
     TerminationReason.EVALUATION_ERROR,
     TerminationReason.INVALID_EVALUATION,
+    TerminationReason.WORKFLOW_DEADLINE_EXCEEDED,
 }
 
 
