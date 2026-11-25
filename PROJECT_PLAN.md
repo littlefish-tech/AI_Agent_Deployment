@@ -71,20 +71,20 @@ own. It considers whether the draft contains material unsuitable for ages 5–10
 such as graphic violence, sexual content, severe horror, hateful content, or
 instructions for dangerous acts.
 
-| Quality dimension | What the judge checks |
-| --- | --- |
-| Age fit | Vocabulary, sentence complexity, and themes suit the target age or the 5–10 range. |
-| Request alignment | The story captures the requested premise and appropriate details. |
-| Narrative coherence | The story has a clear beginning, development, and satisfying resolution. |
-| Bedtime tone | The pacing and mood are gentle, and the ending is reassuring. |
-| Creativity and engagement | The story uses memorable details and holds a child's interest. |
+| Quality dimension | Default weight | What the judge checks |
+| --- | ---: | --- |
+| Age appropriateness | 25% | Vocabulary, sentence complexity, length, emotional depth, and themes suit the target age. |
+| Narrative coherence | 20% | Characters and events are consistent and lead to a satisfying resolution. |
+| Creativity | 15% | The story uses original, engaging details and builds emotional connections. |
+| Request alignment | 15% | The story follows the safe premise and preferences, including safe adaptations. |
+| Bedtime suitability | 25% | The pacing and mood are gentle, and the ending is reassuring. |
 
-Proposed scoring defaults for Steps 5–6 are integer scores from 1 to 5, where 1
-means a major shortfall, 3 means adequate, and 5 means excellent. Accept a usable
-draft only when its evaluation is valid, child safety explicitly passes, its
-average score is at least 4, and every dimension scores at least 3. Keep both
-quality thresholds configurable. A missing or malformed verdict, judge refusal,
-or judge error cannot authorize delivery.
+Each dimension uses criterion-specific anchors from 1 (unacceptable) through
+5 (excellent). Python calculates the weighted mean using configurable relative
+weights. Proposed Step 6 acceptance defaults require a valid evaluation, a
+passing child-safety verdict, a weighted score of at least 4, and every
+dimension at least 3. Keep both quality thresholds configurable. A missing or
+malformed verdict, judge refusal, or judge error cannot authorize delivery.
 
 ## Refinement strategy and technical decisions
 
@@ -94,9 +94,10 @@ or judge error cannot authorize delivery.
    failure, direct the storyteller to remove the flagged material. Keep failed
    drafts internal.
 3. Evaluate each new draft from scratch. Return the first draft that passes.
-4. Stop after two revisions, for a maximum of three drafts and three evaluations.
-   If none passes, or a usable evaluation cannot be obtained, return a safe
-   failure message without a draft.
+4. Stop after two revisions, for a maximum of three drafts and three evaluation
+   rounds. Each round may make one additional request to correct an invalid
+   response. If no draft passes, or a usable evaluation cannot be obtained,
+   return a safe failure message without a draft.
 
 Keep the acceptance logic in Python so the judge supplies evidence and cannot
 set thresholds or bypass the release decision. Validate the judge response
@@ -127,7 +128,7 @@ and setup small enough for the assignment time budget.
 - [x] Step 2: Project initialization and AGENTS.md.
 - [x] Step 3: Anthropic API client and smoke test.
 - [x] Step 4: Storyteller and refinement prompts.
-- [ ] Step 5: LLM Judge.
+- [x] Step 5: LLM Judge.
 - [ ] Step 6: Agent orchestrator.
 - [ ] Step 7: CLI integration.
 - [ ] Step 8: Testing and live evaluation.
@@ -175,7 +176,23 @@ tests (27 existing and 21 new). The new tests cover prompt construction,
 age bands, data boundaries, refinement, input and output validation, and client
 error propagation. No live API calls were made. Prompt adherence, actual story
 quality, and safety against adversarial input remain unverified. The storyteller
-produces internal drafts for the future mandatory safety gate. Steps 5–10 remain.
+produces internal drafts for the future mandatory safety gate.
+
+Step 5 added `StoryJudge`, `JudgeEvaluation`, and the judge prompt. The shared
+client accepts an optional [native JSON output schema](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)
+via `output_config.format`, supported by Claude Haiku 5.5 and Anthropic SDK
+2.14.0. Python validates exact JSON fields, integer score ranges, text lists,
+and the relationship between safety issues and the boolean verdict. It requires
+a non-blank suggestion when a score is 3 or below or safety fails. The prompt
+asks for concrete changes without quoting unsafe passages. The judge calculates
+quality independently of the safety result and leaves acceptance decisions
+to Step 6. An invalid verdict gets one fresh request with a correction
+instruction. Shared-client errors propagate through the existing SDK path.
+
+The Step 5 run of `python -B -m pytest -q -p no:cacheprovider` passed all 100
+tests, including 52 new mocked cases. No live API calls were made. The tests
+verify the software contract. Feedback usefulness, rubric accuracy, and
+child-safety accuracy still need live evaluation. Steps 6–10 remain.
 
 ### Known issues
 
@@ -188,6 +205,7 @@ produces internal drafts for the future mandatory safety gate. Steps 5–10 rema
 
 ### Next implementation step
 
-Complete Step 5 by adding the judge prompt and implementing `judge.py` with
-the shared `LLMClient.generate_text()` interface. Validate the returned safety
-verdict, rubric scores, and feedback. Test valid and malformed verdicts offline.
+Complete Step 6 by wiring the storyteller and judge into an orchestrator.
+Require explicit safety approval before release, apply configurable quality
+thresholds, and pass actionable feedback into at most two revisions, each
+followed by reevaluation. Test approval, revision, and failure paths offline.

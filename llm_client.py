@@ -51,8 +51,9 @@ class LLMClient:
         system_prompt: str,
         user_message: str,
         max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
+        json_schema: dict[str, object] | None = None,
     ) -> str:
-        """Return the visible text of a complete response or raise an error."""
+        """Return complete response text, optionally constrained to a JSON schema."""
         if not system_prompt.strip() or not user_message.strip():
             raise ValueError("System prompt and user message must be non-empty.")
         if type(max_output_tokens) is not int or max_output_tokens < 1:
@@ -64,6 +65,11 @@ class LLMClient:
                 max_tokens=max_output_tokens,
                 system=system_prompt,
                 messages=[{"role": "user", "content": user_message}],
+                **(
+                    {"output_config": {"format": {"type": "json_schema", "schema": json_schema}}}
+                    if json_schema is not None
+                    else {}
+                ),
             )
         except (AuthenticationError, PermissionDeniedError):
             raise LLMClientError("Anthropic rejected the credentials or access.") from None

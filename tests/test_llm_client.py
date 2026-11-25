@@ -49,6 +49,22 @@ def test_combines_text_blocks_and_passes_token_override(sdk_client: Mock) -> Non
     assert sdk_client.messages.create.call_args.kwargs["max_tokens"] == 256
 
 
+def test_sends_native_json_schema_when_requested(sdk_client: Mock) -> None:
+    schema = {"type": "object", "properties": {}, "additionalProperties": False}
+    sdk_client.messages.create.return_value = SimpleNamespace(
+        stop_reason="end_turn", content=[TextBlock(type="text", text="{}")]
+    )
+
+    result = LLMClient(sdk_client).generate_text(
+        system_prompt="System", user_message="User", json_schema=schema
+    )
+
+    assert result == "{}"
+    assert sdk_client.messages.create.call_args.kwargs["output_config"] == {
+        "format": {"type": "json_schema", "schema": schema}
+    }
+
+
 @pytest.mark.parametrize("env_value", [None, " ", "environment-test-value"])
 def test_credential_sources(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, env_value: str | None
