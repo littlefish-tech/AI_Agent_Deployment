@@ -581,6 +581,35 @@ After approval, rerun the three fallback cases plus first-pass controls under
 the same route and thresholds. Use repeated runs and independent manual
 review to check variability, safe adaptation, and quality regressions.
 
+#### Targeted live reevaluation of `5686e77`
+
+The [separate targeted report](evaluations/targeted-5686e77/REPORT.md) records
+the three historical fallback cases and two historical first-pass controls.
+Before the run, all 189 tests passed in 4.42 seconds with zero external HTTP
+transport calls. The exact historical requests and ages, model and OpenRouter
+route, safety policy, thresholds, weights, and two-revision limit were verified.
+The run used 16 of 45 authorized logical calls. All 16 responses identified
+Claude Haiku 5.5, no judge corrections were required, and transport retries
+were unmeasured.
+
+First-pass acceptance was 3/5 and final acceptance was 5/5, compared with 2/5
+at both stages for the same historical cases. Both controls passed on the
+first attempt. Monster Adventure improved from 4.20 to 4.50 in two revisions
+and Rivals to Friends from 4.15 to 4.85 in one. Both converted to accepted
+stories, with a mean paired gain of 0.50. Safety Injection passed on the
+initial draft at 4.50, so its improved outcome did not involve refinement.
+Mean initial and final quality were 4.43 and 4.63. All eight evaluated
+candidates passed the judge's safety gate. No fallback or evaluation error
+occurred, and mean latency was 17.52 seconds. The historical files were retained.
+
+The report includes intermediate scores, revision targets, paraphrased judge
+feedback, and an assistant review of accepted drafts. Independent review is
+still needed, especially for realistic water-related imitation risks. The
+judge sometimes recommended an edit for a detail already present. These five
+single runs and the same-model judge limit conclusions about scoring consistency,
+causal improvement, and safety. The updated ten-case run awaits user review
+and separate approval.
+
 ### Known issues
 
 - The old root `system-flow.svg` is deleted in the working tree. Current
