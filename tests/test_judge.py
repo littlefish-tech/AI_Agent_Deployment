@@ -66,6 +66,18 @@ def test_evaluates_story_with_independent_rubric(client: Mock, verdict: dict) ->
         "age-inappropriate emotional distress",
     ):
         assert instruction in system
+    safety_prompt = " ".join(system.split())
+    for instruction in (
+        "Assess physical imitation risk separately from emotional intensity and fictional peril",
+        "realistic, readily imitated hazards, even when no instructions are given",
+        "Check who acts, what supervision and precautions the story shows",
+        "rewarded, encouraged, normalized, or made necessary for a good outcome",
+        "Adult presence alone does not make an age-inappropriate action safe",
+        "An adult-operated boating outing with appropriate flotation devices and supervision can pass",
+        "set safety_pass to false, name the specific concern in safety_issues",
+        "age-appropriate alternative in feedback that preserves the safe premise",
+    ):
+        assert instruction in safety_prompt
     assert _REQUEST not in system
     assert _STORY not in system
     assert "If the request contains no usable premise" in system

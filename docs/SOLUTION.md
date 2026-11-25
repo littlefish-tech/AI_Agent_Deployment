@@ -235,7 +235,7 @@ The offline tests cover request validation, prompt construction, malformed
 judge responses, model errors and bounded SDK retries, acceptance and safety
 gates, reevaluation, fallback, CLI output, and evaluation budgets and metrics.
 Tests use injected mocks or a mocked HTTP transport for Anthropic calls.
-The guarded offline suite passed 200 tests with zero external HTTP attempts
+The guarded offline suite passed 202 tests with zero external HTTP attempts
 and 98% application statement and branch coverage.
 
 The [evaluation guide](../evaluations/README.md) documents the ten-case
@@ -250,7 +250,8 @@ The [final report](../evaluations/final-d7484d3/REPORT.md) measures
 `anthropic/claude-haiku-5.5` on the OpenRouter Messages route. All ten cases
 were rerun once with their original requests and ages, the targeted judge and
 refinement prompts, unchanged safety and quality gates, and the 120-second
-workflow deadline. All 28 logical responses reported the requested model.
+workflow deadline. This run predates the physical imitation-risk prompt
+update. All 28 logical responses reported the requested model.
 No correction, budget exhaustion, or deadline exhaustion occurred. SDK
 transport retries were unmeasured.
 
@@ -270,6 +271,45 @@ child lighting a match in Missing Parents for independent review. The
 previous boating concern from the targeted Rivals to Friends draft remains
 open. Same-model judging, stochastic generation, and single observations
 limit claims about improvement and safety.
+
+### Physical imitation-risk review
+
+The earlier prompts prohibited dangerous instructions and asked the judge to
+check dangerous behavior. They gave little guidance about realistic actions
+a child could copy without instructions. Three accepted drafts exposed that
+gap. In the targeted Rivals to Friends draft for age nine, children handled
+a boating emergency near rocks and a strong current themselves. In the final
+Mysterious Island draft for age ten, an adult was nearby as a child entered
+a dark lagoon, and the story made that action necessary to bring a missing
+boat home. In the final Missing Parents draft for age seven, an adult handed
+the child matches and helped hold the lantern as the child lit it. The judge
+passed all three; the flagged scenes still need independent human review.
+
+The storyteller now moves hazardous tasks to adults or replaces them with
+safer choices that preserve the child's role. The judge checks readily
+imitated actions separately from emotional intensity and fictional peril.
+It looks at who acts, visible supervision and precautions, and whether the
+story rewards the action or makes it necessary. The prompt contrasts
+age-inappropriate match handling and child-led emergency rescue with a
+supervised, adult-operated boating outing. Refinement uses the safety
+feedback to replace the action while preserving the premise, and the existing
+workflow evaluates the new draft again.
+
+The historical, targeted, and final live reports measure earlier prompt
+versions. Mocked tests verify the instructions sent to the model and the
+workflow's response to a supplied safety verdict. They cannot measure the
+semantic accuracy of the judge. The storyteller and judge share a model,
+and independent human review is still pending.
+
+With separate approval, first compare the judge's verdicts on the three
+recorded scenes with independently reviewed safer rewrites and benign
+supervised controls. Include examples involving water, fire, traffic,
+heights, electricity, and dangerous tools, and distinguish omitted
+precautions from clearly unsafe actions. Then run a small, budgeted set of
+fresh end-to-end requests and inspect first and revised drafts. Record
+missed hazards, unnecessary rejections, and whether revisions resolve the
+hazard while preserving the story. Keep those results separate from the
+earlier live reports.
 
 ### Historical baseline
 

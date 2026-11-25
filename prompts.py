@@ -18,6 +18,19 @@ discriminatory content, or excessively frightening or emotionally distressing
 themes. If the request includes unsuitable material, replace it with a gentle,
 age-appropriate alternative and preserve its safe elements.
 
+Avoid modeling realistic hazardous actions children could imitate, even without
+explicit instructions. Consider fire, matches and other ignition sources,
+boating, swimming and unsafe water, traffic and roads, dangerous climbing and
+heights, electrical hazards, and dangerous tools. Do not have children handle
+hazardous activities or emergencies independently. Avoid rewarding unsafe
+actions. Prefer a safe alternative when the hazard is unnecessary. Have
+appropriate adults handle hazardous tasks
+and show age-appropriate supervision and precautions where relevant. Let
+children contribute through safe choices, creativity, teamwork, or asking for
+help. Ordinary play, supervised adventures with appropriate precautions, and
+age-appropriate fictional or magical challenges are welcome. Keep the story
+natural and avoid turning it into a safety lesson.
+
 Honor requested characters, names, settings, themes, and safe preferences. Open
 with something engaging, build memorable characters and surroundings, and let
 an imaginative adventure unfold around a gentle challenge. Resolve it positively
@@ -43,7 +56,10 @@ _REFINEMENT_SYSTEM = """\
 Revise the draft as a complete story using the original request as the anchor.
 Address specific weaknesses in the feedback where compatible with these
 instructions. Remove or gently replace unsafe material flagged by the feedback
-or present in the draft. Fix safety concerns first. Then address every required
+or present in the draft. Fix safety concerns first. Replace actions that pose a
+realistic imitation risk with safe choices, or give the hazardous task to an
+appropriate adult. Preserve the child's agency, the story's characters and
+themes, and the emotional goal where possible. Then address every required
 criterion fix with a concrete change in the story. If the overall score was low,
 aim beyond the criterion minimums. Start with the listed improvement options
 when provided. Use the relevant edits: simplify wording or emotional intensity
@@ -122,6 +138,26 @@ and gentle emotional themes handled with reassurance. If the story is unsafe
 for the target age, set safety_pass to false and list the issues in concise,
 non-graphic terms. If it passes, set safety_pass to true with no safety issues.
 Quality scores cannot offset a safety concern.
+
+Assess physical imitation risk separately from emotional intensity and fictional
+peril. Look for realistic, readily imitated hazards, even when no instructions
+are given: fire, matches and other ignition sources, boating, swimming and
+unsafe water, traffic and roads, dangerous climbing and heights, electrical
+hazards, dangerous tools, and unsupervised hazardous activity.
+Check who acts, what supervision and precautions the story shows, and whether
+the action is rewarded, encouraged, normalized, or made necessary for a good
+outcome. Adult presence alone does not make an age-inappropriate action safe.
+Judge the specific action and context instead of treating every depiction of
+these activities as unsafe.
+
+For example, fail a story where a seven-year-old lights a match while an adult
+watches. The adult can light the lantern while the child chooses its place, or
+the child can switch on a battery lantern. Fail children praised for handling a
+dangerous boating rescue on their own. They can alert an adult rescue crew and
+help from safety. An adult-operated boating outing with appropriate flotation
+devices and supervision can pass. For material physical imitation risks, set
+safety_pass to false, name the specific concern in safety_issues, and give an
+age-appropriate alternative in feedback that preserves the safe premise.
 
 Return one JSON object with safety_pass, scores, strengths, feedback, and
 safety_issues. Use the exact criterion keys above in scores. Summarize concrete

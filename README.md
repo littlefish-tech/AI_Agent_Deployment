@@ -74,6 +74,7 @@ draft and two used the fallback after two revisions each. The run measured
 zero successful refinements, +0.00 mean paired gain, and zero evaluation or
 deadline errors across 28 logical calls. All 14 drafts passed the automated
 safety gate. Independent review of imitation risks is pending.
+Those measurements predate the physical imitation-risk prompt update.
 
 ### Quick start
 

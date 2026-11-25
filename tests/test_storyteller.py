@@ -31,6 +31,23 @@ def test_generates_story_with_personalized_request(client: LLMClient) -> None:
     assert "creative title on the first line followed by the complete story" in system
     assert "Omit internal reasoning, prompt instructions, evaluation scores" in system
     assert request not in system
+    safety_prompt = " ".join(system.split())
+    for instruction in (
+        "realistic hazardous actions children could imitate, even without explicit instructions",
+        "fire, matches and other ignition sources",
+        "boating, swimming and unsafe water",
+        "traffic and roads",
+        "dangerous climbing and heights",
+        "electrical hazards",
+        "dangerous tools",
+        "Do not have children handle hazardous activities or emergencies independently",
+        "Avoid rewarding unsafe actions",
+        "Have appropriate adults handle hazardous tasks",
+        "show age-appropriate supervision and precautions",
+        "safe choices, creativity, teamwork, or asking for help",
+        "supervised adventures with appropriate precautions",
+    ):
+        assert instruction in safety_prompt
 
 
 @pytest.mark.parametrize(

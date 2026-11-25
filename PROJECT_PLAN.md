@@ -676,6 +676,40 @@ failures, skips, or external HTTP attempts. The scores, acceptance gates,
 and metrics were independently recomputed from the saved records. No
 changes to the application were made for this evaluation.
 
+#### Targeted physical imitation-risk prompt update
+
+Independent review was requested after three earlier accepted drafts showed
+realistic hazards. The targeted Rivals to Friends draft had children handle
+a boating emergency near rocks and a strong current. The final Mysterious
+Island draft made a child's wading into a dark lagoon the key to bringing a
+missing boat home. The final Missing Parents draft had a child light a match
+with an adult present. The prior generation prompt prohibited dangerous
+instructions, and the judge covered dangerous behavior in general. Neither
+gave a concrete way to evaluate imitation risk without explicit instructions.
+
+The generation and refinement prompts now shift hazardous responsibility to
+adults or use safer alternatives that retain the child's agency. The judge
+checks realistic imitation risk separately from emotional intensity and
+fictional peril. It considers who acts, visible precautions and supervision,
+and whether the narrative encourages, rewards, normalizes, or requires the
+action. Balanced examples make room for appropriately supervised activities.
+The verdict schema and application routing remain unchanged. A failed safety
+verdict still blocks release, and a revision must be reevaluated.
+
+The guarded complete suite passed 202 tests in 4.90 seconds, with no failures,
+skips, or external HTTP attempts. Measured application statement and branch
+coverage was 98%. The new tests check the sent prompts and trace mocked
+safety failures through revision, reevaluation, and fallback despite perfect
+quality scores. They do not measure real model judgments. No live calls
+were made. The unchanged historical, targeted, and final reports measure
+earlier prompt versions.
+
+With separate approval, compare the three recorded scenes with independently
+reviewed safer rewrites and benign controls, then run a bounded set of fresh
+generation and refinement cases. Review missed hazards and false positives
+separately from quality scores. See the
+[solution walkthrough](docs/SOLUTION.md#physical-imitation-risk-review).
+
 ### Known issues
 
 - The old root `system-flow.svg` is deleted in the working tree. Current
@@ -691,7 +725,8 @@ changes to the application were made for this evaluation.
 
 ### Next implementation step
 
-Step 10 evaluation is complete. Review the final report and the accepted
-stories, resolve the remaining working-tree items, and package the submission
-when requested. Any follow-up live run requires a separately approved
-logical call budget.
+The full-dataset evaluation is complete for the prior prompts. Independent
+review of the flagged drafts and live safety regression for the updated prompts
+are pending. Resolve the remaining working-tree items and package the
+submission when requested. Any follow-up live run requires a separately
+approved logical call budget.

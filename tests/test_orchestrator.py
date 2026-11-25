@@ -412,6 +412,67 @@ def test_numeric_release_gaps_reach_revision_without_anchoring_reevaluation() ->
     }
 
 
+@pytest.mark.parametrize("revision_passes_safety", [True, False])
+def test_high_scoring_physical_hazard_is_revised_and_reevaluated(
+    revision_passes_safety: bool,
+) -> None:
+    sdk = Mock(spec=anthropic.Anthropic)
+    request = "A story about a child helping at a lantern festival."
+    initial_draft = "Lantern Night\n\nThe child lit a match while an adult watched."
+    safe_draft = "Lantern Night\n\nThe child chose where to put the battery lantern."
+    issue = "A child handles matches even though an adult is present."
+    remedy = "Let the child choose the lantern's spot and switch on a battery lantern."
+    rejected = {
+        "safety_pass": False,
+        "scores": SCORES,
+        "strengths": ["The child contributes to the festival."],
+        "feedback": [remedy],
+        "safety_issues": [issue],
+    }
+    approved = {**rejected, "safety_pass": True, "feedback": [], "safety_issues": []}
+    candidates = [(initial_draft, rejected)]
+    if revision_passes_safety:
+        candidates.append((safe_draft, approved))
+    else:
+        candidates.extend([
+            ("Lantern Night\n\nThe child still lit a match.", rejected),
+            ("Lantern Night\n\nThe child lit another match.", rejected),
+        ])
+    sdk.messages.create.side_effect = [
+        response(text) for draft, evaluation in candidates for text in (draft, json.dumps(evaluation))
+    ]
+    client = LLMClient(sdk)
+
+    result = AgentOrchestrator(Storyteller(client), StoryJudge(client)).run_agent(request, AGE)
+
+    calls = [item.kwargs for item in sdk.messages.create.call_args_list]
+    assert result.logical_model_calls == len(calls) == (4 if revision_passes_safety else 6)
+    assert result.evaluation_history[0].overall_score == 5
+    assert result.evaluation_history[0].rejection_reasons == ("child_safety",)
+    assert result.revision_count == (1 if revision_passes_safety else 2)
+    revision_system = " ".join(calls[2]["system"].split())
+    assert "Replace actions that pose a realistic imitation risk with safe choices" in revision_system
+    assert "give the hazardous task to an appropriate adult" in revision_system
+    assert "Preserve the child's agency" in revision_system
+    revision_data = json.loads(calls[2]["messages"][0]["content"])
+    assert revision_data["original_story"] == initial_draft
+    assert f"Safety concern to remove or safely replace: {issue}" in revision_data["judge_feedback"]
+    assert f"Judge suggestion: {remedy}" in revision_data["judge_feedback"]
+    for judge_call, (draft, _) in zip(calls[1::2], candidates, strict=True):
+        assert json.loads(judge_call["messages"][0]["content"]) == {
+            "request": request, "age": AGE, "story": draft,
+        }
+        assert judge_call["system"] == calls[1]["system"]
+    if revision_passes_safety:
+        assert result.accepted and result.story == safe_draft
+        assert result.delivered_evaluation.safety_pass
+    else:
+        assert_fallback(result, TerminationReason.REVISION_LIMIT)
+        assert all(
+            evaluation.rejection_reasons == ("child_safety",) for evaluation in result.evaluation_history
+        )
+
+
 @pytest.mark.parametrize("correction_succeeds", [True, False])
 def test_counts_real_client_calls_and_bounds_judge_correction(correction_succeeds: bool) -> None:
     sdk = Mock(spec=anthropic.Anthropic)
