@@ -233,6 +233,24 @@ tests, including 26 new CLI cases. The tests mock agent or SDK calls and cover
 input correction, progress, output, credential and runtime failures, and
 interruption. No live API calls were made. Steps 8–10 remain.
 
+### Step 7 CLI smoke check
+
+- Reran the complete suite with `ANTHROPIC_API_KEY` unset. All 156 tests passed
+  in 3.07 seconds. A second run guarded the real Anthropic
+  `Messages.create()` method. All 156 passed with zero unmocked calls.
+  Mocked CLI tests confirmed normal-mode formatting, invalid-input reprompting
+  before client initialization, and reevaluation before releasing a revision.
+- Ran `python main.py --debug` with the Alice and Bob the cat request and age 7.
+  The CLI showed the welcome and both prompts, accepted the inputs, and then
+  reported that the story service could not start because no credential was
+  available from the environment or the project-local `.env`. It exited with
+  status 1 and no traceback. The prompts appeared on one line with piped input.
+- No live requests were made (0 of the 9 authorized logical calls). No live
+  story, judge verdict, revision, fallback, or execution metrics were produced.
+  The offline review confirmed the outgoing model configuration is
+  `claude-haiku-5-5`. Live verification remains pending a configured
+  `ANTHROPIC_API_KEY`.
+
 ### Known issues
 
 - The tracked root `system-flow.svg` is deleted in the working tree. The
