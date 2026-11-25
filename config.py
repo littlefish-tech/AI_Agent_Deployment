@@ -9,6 +9,9 @@ from typing import Final
 from dotenv import dotenv_values
 
 MODEL_ID: Final = "claude-haiku-5-5"
+ANTHROPIC_BASE_URL: Final = "https://api.anthropic.com"
+OPENROUTER_MODEL_ID: Final = "anthropic/claude-haiku-5.5"
+OPENROUTER_BASE_URL: Final = "https://openrouter.ai/api"
 DEFAULT_MAX_OUTPUT_TOKENS: Final = 4_096
 REQUEST_TIMEOUT_SECONDS: Final = 30.0
 MAX_RETRIES: Final = 2
@@ -34,9 +37,21 @@ DEFAULT_STORY_AGE: Final = 7
 MAX_STORY_REQUEST_LENGTH: Final = 2_000
 
 
-def get_anthropic_api_key() -> str | None:
+def _get_setting(name: str) -> str | None:
     """Read the environment first, with the project-local .env as a fallback."""
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if api_key is None:
-        api_key = dotenv_values(DOTENV_PATH, interpolate=False).get("ANTHROPIC_API_KEY")
-    return (api_key or "").strip() or None
+    value = os.getenv(name)
+    if value is None:
+        value = dotenv_values(DOTENV_PATH, interpolate=False).get(name)
+    return (value or "").strip() or None
+
+
+def get_llm_provider() -> str:
+    return _get_setting("LLM_PROVIDER") or "anthropic"
+
+
+def get_anthropic_api_key() -> str | None:
+    return _get_setting("ANTHROPIC_API_KEY")
+
+
+def get_openrouter_api_key() -> str | None:
+    return _get_setting("OPENROUTER_API_KEY")

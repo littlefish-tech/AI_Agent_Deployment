@@ -54,11 +54,16 @@ You decide
 ## Running the bedtime story agent
 
 The recruiter updated the model requirement to Claude Haiku 5.5. The
-application uses Anthropic's Python SDK with `ANTHROPIC_API_KEY`.
+application uses Anthropic's Python SDK for both supported routes.
 
 From the project directory, activate your Python virtual environment and install
-the runtime requirements. Set `ANTHROPIC_API_KEY` in your environment or copy
-`.env.example` to `.env` and set the key there before running the CLI.
+the runtime requirements. Set the provider and matching key in your
+environment or copy `.env.example` to `.env` and configure it locally.
+
+| Route | Configuration | Model ID |
+| --- | --- | --- |
+| Direct Anthropic (default) | `ANTHROPIC_API_KEY` | `claude-haiku-5-5` |
+| OpenRouter | `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` | `anthropic/claude-haiku-5.5` |
 
 ```sh
 python -m pip install -r requirements.txt

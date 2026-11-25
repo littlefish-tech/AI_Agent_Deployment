@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -9,6 +10,11 @@ from anthropic.types import TextBlock, ThinkingBlock
 
 import config
 from llm_client import LLMClient, LLMClientError
+
+
+@pytest.fixture(autouse=True)
+def default_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LLM_PROVIDER", "anthropic")
 
 
 @pytest.fixture
@@ -85,8 +91,86 @@ def test_credential_sources(
         else:
             LLMClient()
             constructor.assert_called_once_with(
-                api_key=env_value or "dotenv-test-value", timeout=30.0, max_retries=2
+                api_key=env_value or "dotenv-test-value",
+                base_url="https://api.anthropic.com",
+                timeout=30.0,
+                max_retries=2,
             )
+
+
+def test_openrouter_messages_route_and_json_schema(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dotenv_path = tmp_path / ".env"
+    dotenv_path.write_text(
+        "LLM_PROVIDER=openrouter\nOPENROUTER_API_KEY=gateway-test-token\n", encoding="utf-8"
+    )
+    monkeypatch.setattr(config, "DOTENV_PATH", dotenv_path)
+    monkeypatch.delenv("LLM_PROVIDER")
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "direct-test-token")
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://other.example")
+    requests: list[httpx2.Request] = []
+
+    def respond(request: httpx2.Request) -> httpx2.Response:
+        requests.append(request)
+        return httpx2.Response(
+            200,
+            json={
+                "id": "msg_test",
+                "model": config.OPENROUTER_MODEL_ID,
+                "type": "message",
+                "role": "assistant",
+                "stop_reason": "end_turn",
+                "content": [{"type": "text", "text": "{}"}],
+                "usage": {"input_tokens": 1, "output_tokens": 1},
+            },
+        )
+
+    with httpx2.Client(transport=httpx2.MockTransport(respond)) as transport:
+        with patch(
+            "llm_client.Anthropic",
+            side_effect=lambda **kwargs: anthropic.Anthropic(http_client=transport, **kwargs),
+        ):
+            client = LLMClient()
+            assert client.generate_text(system_prompt="System", user_message="User") == "{}"
+            assert client.generate_text(
+                system_prompt="Judge", user_message="Draft", json_schema={"type": "object"}
+            ) == "{}"
+    assert client.model_id == "anthropic/claude-haiku-5.5"
+    assert len(requests) == 2
+    for request in requests:
+        assert str(request.url) == "https://openrouter.ai/api/v1/messages"
+        assert request.headers["Authorization"] == "Bearer gateway-test-token"
+        assert "x-api-key" not in request.headers
+        payload = json.loads(request.content)
+        assert payload["model"] == client.model_id
+        assert not {"models", "fallbacks", "temperature", "top_p", "top_k"} & payload.keys()
+    assert "output_config" not in json.loads(requests[0].content)
+    assert json.loads(requests[1].content)["output_config"] == {
+        "format": {"type": "json_schema", "schema": {"type": "object"}}
+    }
+
+
+def test_openrouter_does_not_use_direct_key(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(config, "DOTENV_PATH", tmp_path / ".env")
+    monkeypatch.setenv("LLM_PROVIDER", "openrouter")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "direct-test-token")
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    with patch("llm_client.Anthropic") as constructor:
+        with pytest.raises(LLMClientError, match="Set OPENROUTER_API_KEY"):
+            LLMClient()
+    constructor.assert_not_called()
+
+
+def test_rejects_unknown_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LLM_PROVIDER", "unsupported")
+    with patch("llm_client.Anthropic") as constructor:
+        with pytest.raises(LLMClientError, match="Set LLM_PROVIDER"):
+            LLMClient()
+    constructor.assert_not_called()
 
 
 def test_missing_credentials(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

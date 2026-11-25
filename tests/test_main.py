@@ -27,6 +27,7 @@ SCORES = {
 @pytest.fixture
 def sdk(monkeypatch: pytest.MonkeyPatch) -> Mock:
     mock_sdk = Mock(spec=anthropic.Anthropic)
+    monkeypatch.setenv("LLM_PROVIDER", "anthropic")
     monkeypatch.setattr(llm_client, "Anthropic", Mock(return_value=mock_sdk))
     monkeypatch.setattr(llm_client, "get_anthropic_api_key", lambda: TEST_CREDENTIAL)
     return mock_sdk
@@ -163,10 +164,31 @@ def test_missing_api_key_reports_setup_without_sdk_call(
     assert main.main(["--debug"]) == 1
 
     output = capsys.readouterr()
-    assert "Check that ANTHROPIC_API_KEY" in output.err
+    assert "Set ANTHROPIC_API_KEY" in output.err
     assert "Execution details" not in output.out
     llm_client.Anthropic.assert_not_called()
     sdk.messages.create.assert_not_called()
+
+
+def test_openrouter_debug_displays_gateway_model_id(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], sdk: Mock,
+) -> None:
+    monkeypatch.setenv("LLM_PROVIDER", "openrouter")
+    monkeypatch.setenv("OPENROUTER_API_KEY", TEST_CREDENTIAL)
+    feed_input(monkeypatch, REQUEST, "")
+    sdk.messages.create.side_effect = [response(STORY), response(verdict())]
+
+    assert main.main(["--debug"]) == 0
+
+    output = capsys.readouterr()
+    assert "Model: anthropic/claude-haiku-5.5" in output.out
+    assert STORY in output.out
+    assert "Accepted: yes" in output.out
+    assert TEST_CREDENTIAL not in output.out + output.err
+    assert [call.kwargs["model"] for call in sdk.messages.create.call_args_list] == [
+        "anthropic/claude-haiku-5.5",
+        "anthropic/claude-haiku-5.5",
+    ]
 
 
 def response(text: str) -> SimpleNamespace:

@@ -7,7 +7,7 @@ import argparse
 import sys
 from collections.abc import Sequence
 
-from config import DEFAULT_STORY_AGE, MAX_STORY_AGE, MIN_STORY_AGE, MODEL_ID
+from config import DEFAULT_STORY_AGE, MAX_STORY_AGE, MIN_STORY_AGE
 from judge import StoryJudge
 from llm_client import LLMClient, LLMClientError
 from orchestrator import (
@@ -78,9 +78,9 @@ def _print_assessment(label: str, assessment: CandidateAssessment | None) -> Non
         print(f"  {criterion.replace('_', ' ').capitalize()}: {score}/5")
 
 
-def _print_debug(result: AgentResult) -> None:
+def _print_debug(result: AgentResult, model_id: str) -> None:
     print("\nExecution details")
-    print(f"Model: {MODEL_ID}")
+    print(f"Model: {model_id}")
     _print_assessment("Initial candidate quality", result.initial_evaluation)
     _print_assessment("Final candidate quality", result.final_candidate_evaluation)
     if result.used_fallback:
@@ -109,10 +109,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         try:
             client = LLMClient()
-        except LLMClientError:
+        except LLMClientError as error:
             print(
-                "Could not start the story service. Check that ANTHROPIC_API_KEY "
-                "is set in your environment or accessible in your local .env file.",
+                f"Could not start the story service. {error}",
                 file=sys.stderr,
             )
             return 1
@@ -135,7 +134,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("Your bedtime story is ready!")
     print(f"\n{result.story}")
     if args.debug:
-        _print_debug(result)
+        _print_debug(result, client.model_id)
     return 0
 
 

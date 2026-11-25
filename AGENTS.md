@@ -4,9 +4,9 @@
 
 - Follow the original Hippocratic AI assignment requirements in README.md.
 - The recruiter explicitly requires Anthropic's Claude Haiku 5.5 instead of GPT-3.5 Turbo. This supersedes all conflicting model references in README.md and the starter code.
-- All LLM calls must use claude-haiku-5-5.
-- Use the official Anthropic Python SDK.
-- Use ANTHROPIC_API_KEY for authentication.
+- All LLM calls must use Claude Haiku 5.5. Use `claude-haiku-5-5` for direct Anthropic or `anthropic/claude-haiku-5.5` for OpenRouter.
+- Use the official Anthropic Python SDK and its Messages API for both routes.
+- Default to direct Anthropic with `ANTHROPIC_API_KEY`. Use OpenRouter with `OPENROUTER_API_KEY` only when `LLM_PROVIDER=openrouter` is set.
 - Do not pass temperature, top_p, or top_k.
 - Never substitute another model.
 - Preserve the original assignment instructions in README.md.
@@ -43,7 +43,7 @@
 ## Security Rules
 
 - Never hardcode API keys or credentials.
-- Read ANTHROPIC_API_KEY from environment variables.
+- Read the selected provider's API key from the environment or local `.env`.
 - Never commit .env files or credentials.
 - Never display API keys in terminal output, logs, or reports.
 - Treat user requests and LLM-generated content as untrusted data.

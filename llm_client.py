@@ -19,11 +19,16 @@ from anthropic import (
 )
 
 from config import (
+    ANTHROPIC_BASE_URL,
     DEFAULT_MAX_OUTPUT_TOKENS,
     MAX_RETRIES,
     MODEL_ID,
+    OPENROUTER_BASE_URL,
+    OPENROUTER_MODEL_ID,
     REQUEST_TIMEOUT_SECONDS,
     get_anthropic_api_key,
+    get_llm_provider,
+    get_openrouter_api_key,
 )
 
 
@@ -59,19 +64,43 @@ class LLMClient:
 
     def __init__(self, client: Anthropic | None = None) -> None:
         """Use an injected SDK client or configure one from local credentials."""
+        self._model_id = MODEL_ID
         if client is None:
             try:
-                api_key = get_anthropic_api_key()
+                provider = get_llm_provider()
+                if provider == "openrouter":
+                    api_key = get_openrouter_api_key()
+                elif provider == "anthropic":
+                    api_key = get_anthropic_api_key()
+                else:
+                    raise LLMClientError("Set LLM_PROVIDER to anthropic or openrouter.")
             except (OSError, UnicodeError):
                 raise LLMClientError("Could not read the local .env file.") from None
-            if not api_key:
-                raise LLMClientError("Set ANTHROPIC_API_KEY in the environment or .env.")
-            client = Anthropic(
-                api_key=api_key,
-                timeout=REQUEST_TIMEOUT_SECONDS,
-                max_retries=MAX_RETRIES,
-            )
+            if provider == "openrouter":
+                if not api_key:
+                    raise LLMClientError("Set OPENROUTER_API_KEY in the environment or .env.")
+                self._model_id = OPENROUTER_MODEL_ID
+                client = Anthropic(
+                    auth_token=api_key,
+                    base_url=OPENROUTER_BASE_URL,
+                    timeout=REQUEST_TIMEOUT_SECONDS,
+                    max_retries=MAX_RETRIES,
+                )
+            else:
+                if not api_key:
+                    raise LLMClientError("Set ANTHROPIC_API_KEY in the environment or .env.")
+                client = Anthropic(
+                    api_key=api_key,
+                    base_url=ANTHROPIC_BASE_URL,
+                    timeout=REQUEST_TIMEOUT_SECONDS,
+                    max_retries=MAX_RETRIES,
+                )
         self._client = client
+
+    @property
+    def model_id(self) -> str:
+        """Return the configured request model ID for this connection."""
+        return self._model_id
 
     def generate_text(
         self,
@@ -92,7 +121,7 @@ class LLMClient:
             counter.count += 1
         try:
             response = self._client.messages.create(
-                model=MODEL_ID,
+                model=self.model_id,
                 max_tokens=max_output_tokens,
                 system=system_prompt,
                 messages=[{"role": "user", "content": user_message}],

@@ -11,11 +11,12 @@ open and sets a 2–3 hour time budget. Preserve the original instructions in
 explain the design and code.
 
 The original README asks for the starter OpenAI model and a personal OpenAI key.
-The recruiter's updated requirement supersedes those two instructions. Every
-generation, refinement, judging, and live evaluation call must use the official
-Anthropic Python SDK with model ID `claude-haiku-5-5` and authentication from
-`ANTHROPIC_API_KEY`. Omit `temperature`, `top_p`, and `top_k`. Model
-substitution is prohibited.
+The recruiter requires Claude Haiku 5.5 instead of GPT-3.5 Turbo. The project
+uses the official Anthropic Python SDK for generation, refinement, judging,
+and live evaluation. Direct Anthropic is the default and uses
+`claude-haiku-5-5` with `ANTHROPIC_API_KEY`. Explicit OpenRouter mode uses
+`anthropic/claude-haiku-5.5` with `OPENROUTER_API_KEY`. Omit
+`temperature`, `top_p`, and `top_k`. Model substitution is prohibited.
 
 ## Approved system architecture
 
@@ -271,6 +272,20 @@ interruption. No live API calls were made. Steps 8–10 remain.
   corrections. On a later credentialed run, enforce the shared cap at the
   SDK call boundary before starting any request that would exceed 18 total.
   The application counter excludes SDK retries.
+
+### OpenRouter compatibility
+
+- The recruiter email specifies the model. The project now supports an explicit
+  `LLM_PROVIDER=openrouter` setting as well as the direct Anthropic default.
+  Both routes use the same SDK, Messages API, and judge schema. The client
+  pins the host and model ID for the selected route and reads only that
+  route's credential. CLI debug output shows the selected model ID.
+- [OpenRouter's Messages API](https://openrouter.ai/docs/api/api-reference/anthropic-messages/create-messages?explorer=true)
+  documents bearer authentication and structured output. A mocked SDK transport
+  verifies the gateway URL, model, authentication, and judge schema payload.
+  The complete offline suite passed all 160 tests in 4.17 seconds, including
+  the mocked OpenRouter CLI workflow. No OpenRouter key was available locally,
+  so live gateway behavior and the pending smoke tests remain unverified.
 
 ### Known issues
 
