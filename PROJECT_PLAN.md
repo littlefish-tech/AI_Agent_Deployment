@@ -125,7 +125,7 @@ and setup small enough for the assignment time budget.
 
 - [x] Step 1: Requirements analysis and architecture planning.
 - [x] Step 2: Project initialization and AGENTS.md.
-- [ ] Step 3: Anthropic API client and smoke test.
+- [x] Step 3: Anthropic API client and smoke test.
 - [ ] Step 4: Storyteller and refinement prompts.
 - [ ] Step 5: LLM Judge.
 - [ ] Step 6: Agent orchestrator.
@@ -141,9 +141,25 @@ pins, environment template, ignore rules, and test directory. The local virtual
 environment was verified with Python 3.14.6, Anthropic SDK 2.14.0, and pytest
 9.2.0.
 
-The initial pytest collection found zero tests (exit code 5). The directory
-contains only `tests/.gitkeep`. No live API calls or evaluations were made.
-The remaining work is tracked in Steps 3–10 above.
+Step 3 added the shared synchronous client in `llm_client.py` and its settings
+in `config.py`. Anthropic's [model documentation](https://platform.claude.com/docs/en/models/haiku-5-5/overview)
+and [Messages API reference](https://platform.claude.com/docs/en/api/python/messages/create)
+confirm the fixed model ID and the `system`, `messages`, and `max_tokens`
+request fields. The client accepts a token limit per call (4,096 by default),
+joins text blocks in order, and rejects empty, truncated, or otherwise incomplete
+responses. It uses the [SDK's timeout and retry settings](https://platform.claude.com/docs/en/cli-sdks-libraries/sdks/python#retries)
+with a 30-second timeout setting and at most two SDK retries. Displayable errors
+omit upstream details.
+
+Install development dependencies with `python -m pip install -r requirements-dev.txt`.
+Set `ANTHROPIC_API_KEY` in the environment or put it in the project-local
+`.env` using `.env.example` as a template. The environment takes precedence.
+The client reads the local fallback using `python-dotenv` without changing the
+process environment. An injected SDK client permits offline tests without a key.
+
+The Step 3 run of `python -B -m pytest -q -p no:cacheprovider` passed all 27
+tests, including the mocked smoke test. `python -m pip check` found no broken
+requirements. No live API calls or evaluations were made. Steps 4–10 remain.
 
 ### Known issues
 
@@ -156,8 +172,7 @@ The remaining work is tracked in Steps 3–10 above.
 
 ### Next implementation step
 
-Complete Step 3 by adding `config.py` and `llm_client.py` with the fixed model
-and environment-based authentication. Add the mocked client smoke test and
-error-path tests, run pytest, and record the verified results here in the same
-local commit as the client. Track any live verification separately if approval
-is pending.
+Complete Step 4 by adding the story generation and refinement templates in
+`prompts.py` and implementing `storyteller.py` with the shared
+`LLMClient.generate_text()` interface. Test initial drafting and feedback-based
+revision offline.
