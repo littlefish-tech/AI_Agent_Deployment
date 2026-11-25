@@ -17,10 +17,10 @@ flowchart TB
     G["Initial prompt<br/>Storyteller system prompt + age guidance<br/>User JSON: story request"]
     S["Storyteller Agent<br/>Generate or revise"]
     D["Generated story<br/>Initial draft or complete revision"]
-    JP["Judge prompt<br/>Judge system prompt + rubric<br/>User JSON: original request, age, draft"]
+    JP["Judge prompt<br/>System rubric + correction instruction when retrying<br/>User JSON: original request, age, draft"]
     J["LLM Judge Agent"]
     R["Structured evaluation JSON<br/>Scores, safety verdict, strengths, feedback, issues"]
-    V["Python validation<br/>Check schema and verdict invariants"]
+    V{"Valid judge verdict?<br/>Python checks schema and invariants"}
     CR{"Correction still available?"}
     W["Python weighted quality score"]
     SAFE{"Child safety passes?"}
@@ -37,16 +37,16 @@ flowchart TB
     E -->|"Validated case + shared call budget"| O
     O --> G --> S --> D
     D -->|"Every draft, including revisions"| JP --> J --> R --> V
-    V -->|"Invalid response"| CR
-    CR -->|"Yes, one judge correction"| J
+    V -->|"Yes"| W --> SAFE
+    V -->|"No"| CR
+    CR -->|"Yes, resend the same inputs once"| JP
     CR -->|"No"| F
-    V -->|"Valid verdict"| W --> SAFE
     SAFE -->|"Yes"| QUAL
     SAFE -->|"No"| REV
     QUAL -->|"Yes, first passing draft"| OUT
     QUAL -->|"No"| REV
-    REV -->|"Yes, include feedback and safety concerns"| RP --> S
     REV -->|"No"| F
+    REV -->|"Yes, include feedback and safety concerns"| RP --> S
     F --> OUT
     S -.->|"Generation or revision request"| API
     J -.->|"Structured evaluation request"| API
@@ -58,9 +58,9 @@ flowchart TB
     classDef decision fill:#fff3d9,stroke:#9b6319,color:#472c0c;
     classDef delivery fill:#e6f5eb,stroke:#2d6846,color:#183d2b;
     classDef data fill:#f5f7fa,stroke:#64748b,color:#1e293b;
-    class C,E,O,G,JP,V,W,RP,API python;
+    class C,E,O,G,JP,W,RP,API python;
     class S,J,MODEL model;
-    class CR,SAFE,QUAL,REV decision;
+    class V,CR,SAFE,QUAL,REV decision;
     class F,OUT delivery;
     class U,D,R data;
 ```
@@ -74,8 +74,10 @@ path as the initial draft.
 
 The CLI reprompts after invalid input and exits with a setup message if it
 cannot initialize the client. During evaluation or an interactive story run,
-expected model failures or an invalid verdict after the one allowed judge
-correction trigger the fallback. The evaluation script reuses the same
+expected model failures trigger the fallback after any eligible SDK retries.
+If a completed judge reply fails validation, the judge resends the same
+inputs with a trusted correction instruction. A second invalid verdict
+triggers the fallback. The evaluation script reuses the same
 orchestrator and stores score and execution metadata instead of story text.
 See the [solution walkthrough](SOLUTION.md) for measured examples and the
 exact release thresholds.
