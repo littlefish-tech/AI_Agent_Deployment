@@ -44,6 +44,7 @@ evaluation again. The storyteller and judge share one Anthropic client.
 ├── storyteller.py
 ├── judge.py
 ├── orchestrator.py
+├── validation.py
 ├── main.py
 ├── evaluate.py
 ├── tests/
@@ -59,7 +60,8 @@ evaluation again. The storyteller and judge share one Anthropic client.
 | `storyteller.py` | Generate drafts and revise them using the original request and the judge's feedback. |
 | `judge.py` | Evaluate each draft and validate the structure and values of the returned verdict. |
 | `orchestrator.py` | Enforce the safety gate, quality thresholds, revision limit, and final outcome deterministically. |
-| `main.py` | Validate CLI input and display the approved story or a brief failure message. |
+| `validation.py` | Share story request and age checks between the CLI and orchestrator. |
+| `main.py` | Prompt for input, wire the agents, and display progress and the delivered story. |
 | `evaluate.py` | Run representative cases through the same workflow and record measured outcomes when live evaluation is approved. |
 | `tests/` and `docs/` | Cover behavior with pytest and document the solution and prompt flow. |
 
@@ -132,7 +134,7 @@ and setup small enough for the assignment time budget.
 - [x] Step 4: Storyteller and refinement prompts.
 - [x] Step 5: LLM Judge.
 - [x] Step 6: Agent orchestrator.
-- [ ] Step 7: CLI integration.
+- [x] Step 7: CLI integration.
 - [ ] Step 8: Testing and live evaluation.
 - [ ] Step 9: Documentation and architecture diagram.
 - [ ] Step 10: Final code review and submission preparation.
@@ -214,20 +216,35 @@ feedback are excluded from assessment history.
 
 The Step 6 run of `python -B -m pytest -q -p no:cacheprovider` passed all 130
 tests, including 30 new orchestration cases with mocked agents or SDK responses.
-No live API calls were made. Steps 7–10 remain.
+No live API calls were made.
+
+Step 7 replaced the starter CLI in `main.py` and preserved the assignment
+reflection at the top. The CLI reprompts on invalid input, defaults to age 7,
+and caps requests at 2,000 characters after trimming surrounding whitespace.
+It validates input before constructing one shared Anthropic client. The
+orchestrator exposes an optional progress callback at actual stage boundaries.
+The CLI displays only the delivered story, labels the prewritten fallback,
+and uses existing termination reasons for expected runtime errors. Opt-in
+`--debug` renders score-only candidate assessments and measured metrics.
+Setup and run instructions are in `README.md`.
+
+The Step 7 run of `python -B -m pytest -q -p no:cacheprovider` passed all 156
+tests, including 26 new CLI cases. The tests mock agent or SDK calls and cover
+input correction, progress, output, credential and runtime failures, and
+interruption. No live API calls were made. Steps 8–10 remain.
 
 ### Known issues
 
-- The working copy contains a modified `README.md` with the original assignment
-  and an untracked `main.py` that still uses the starter OpenAI code.
 - The tracked root `system-flow.svg` is deleted in the working tree. The
   historical diagram shows one revision and needs to be reconciled with the
   two-revision workflow during Step 9.
 - Live access to the required model remains unverified.
+- The CLI handles one request per run. An interactive repeat loop and
+  user-requested changes are deferred. Any future edit flow must reevaluate
+  the changed story before release.
 
 ### Next implementation step
 
-Complete Step 7 by wiring the CLI to the orchestrator with one shared
-`LLMClient`. Validate CLI input and handle client initialization errors.
-Display the delivered story with a clear distinction for fallback output.
-Test CLI behavior offline.
+Complete Step 8 by creating a representative evaluation dataset and an
+evaluation script that exercises the existing orchestrator. Test the harness
+offline and run paid live evaluation only after explicit approval.

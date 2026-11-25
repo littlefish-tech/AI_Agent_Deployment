@@ -1,5 +1,6 @@
 """Bounded story generation, evaluation, and release decisions."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 from math import isclose, ulp
@@ -16,6 +17,7 @@ from config import (
 from judge import JudgeEvaluation, JudgeEvaluationError, StoryJudge
 from llm_client import LLMClientError, track_model_calls
 from storyteller import Storyteller
+from validation import validate_story_request, validate_target_age
 
 FALLBACK_STORY = """\
 The Last Little Lantern
@@ -30,6 +32,15 @@ A moth settled there, folding its wings. Pip left the crease just as it was.
 When the moth floated away, Pip tucked the lanterns into their box and climbed
 into bed. Outside, the moon left its own patch of light on the wall. Pip watched
 it for a while, warm under her quilt, until her eyes gently closed."""
+
+
+class ProgressEvent(StrEnum):
+    """An orchestration stage about to run."""
+
+    GENERATING = "generating"
+    EVALUATING = "evaluating"
+    REVISING = "revising"
+    REEVALUATING = "reevaluating"
 
 
 class TerminationReason(StrEnum):
@@ -128,12 +139,16 @@ class AgentOrchestrator:
         self._storyteller = storyteller
         self._judge = judge
 
-    def run_agent(self, request: str, age: int) -> AgentResult:
+    def run_agent(
+        self,
+        request: str,
+        age: int,
+        *,
+        on_progress: Callable[[ProgressEvent], None] | None = None,
+    ) -> AgentResult:
         """Return the first candidate that passes or a prewritten fallback."""
-        if not isinstance(request, str) or not request.strip():
-            raise ValueError("Story request must be non-empty text.")
-        if type(age) is not int or not 5 <= age <= 10:
-            raise ValueError("Age must be an integer from 5 to 10.")
+        validate_story_request(request)
+        validate_target_age(age)
 
         start = perf_counter()
         history: list[CandidateAssessment] = []
@@ -145,6 +160,8 @@ class AgentOrchestrator:
         with track_model_calls() as calls:
             for revision in range(MAX_STORY_REVISIONS + 1):
                 generation_attempts += 1
+                if on_progress is not None:
+                    on_progress(ProgressEvent.REVISING if revision else ProgressEvent.GENERATING)
                 try:
                     if revision == 0:
                         candidate = self._storyteller.generate_story(request, age)
@@ -161,6 +178,10 @@ class AgentOrchestrator:
                 revision_count = revision
                 final_assessment = None
                 evaluation_attempts += 1
+                if on_progress is not None:
+                    on_progress(
+                        ProgressEvent.REEVALUATING if revision else ProgressEvent.EVALUATING
+                    )
                 try:
                     evaluation = self._judge.evaluate_story(request, age, candidate)
                 except JudgeEvaluationError:
