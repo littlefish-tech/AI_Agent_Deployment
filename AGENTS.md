@@ -11,6 +11,15 @@
 - Never substitute another model.
 - Preserve the original assignment instructions in README.md.
 
+## Session Continuity
+
+- At the beginning of every new session, read README.md, AGENTS.md, and PROJECT_PLAN.md.
+- Review the current Git status before implementing changes.
+- Resume from the next incomplete implementation milestone in PROJECT_PLAN.md.
+- Update PROJECT_PLAN.md after completing each milestone.
+- Record important architectural decisions, actual test results, unresolved issues, and the next planned task in PROJECT_PLAN.md.
+- Include the PROJECT_PLAN.md update in the corresponding local Git commit.
+
 ## Development Rules
 
 - Write clean, modular, readable Python.
