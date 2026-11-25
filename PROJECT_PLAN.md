@@ -358,6 +358,34 @@ repeatability, and more varied safety and injection cases. The four samples
 cannot establish reliability or child-safety coverage. No application or prompt
 changes were made. The full offline suite passed all 160 tests in 3.02 seconds.
 
+### Step 4 live storyteller smoke test
+
+Ran two drafts for the same Alice and Bob request and revised the age-five
+draft once, using Claude Haiku 5.5 via OpenRouter. The three responses returned
+the requested model ID `anthropic/claude-haiku-5.5` and ended normally. The
+run used all three authorized logical calls and no judge calls.
+
+| Case | Body words | Latency | Observation |
+| --- | ---: | ---: | --- |
+| Age 5, initial | 165 | 3.335 s | Simple dialogue and a linear lost-teddy search end with Alice and Bob settling into bed. |
+| Age 10, initial | 503 | 11.891 s | Richer vocabulary and imagery, a clocktower mystery, and a more nuanced concern about Bob wandering off end with the pair dozing at the windowsill. |
+| Age 5, revision | 210 | 5.850 s | Preserves Alice, Bob, and the teddy search. Adds fireflies and a talking hedgehog, then slows down the wind-down with softer imagery and rhythm. |
+
+Both age variants preserved Alice and Bob the cat. The age-five story explicitly
+calls them best friends, while the age-ten story shows their bond through
+habit and dialogue. The age-ten draft was three words over the suggested
+500-word maximum, contained an article error, and left one causal link
+unclear: the clock starts when the winding key comes loose, with no explicit
+winding. Two titles used Markdown bold markers, which the plain-text CLI
+would display literally. The revision made the same search more imaginative,
+with a modest change to the adventure itself.
+
+Revision feedback was simulated: make the adventure more imaginative and its
+bedtime ending more calming. The observations above are a manual review of
+these samples. No LLM judge evaluated them, and this check does not establish
+child safety or repeatable age adaptation. No application code or prompts were
+changed. The offline suite passed all 160 tests in 3.14 seconds.
+
 ### Known issues
 
 - The tracked root `system-flow.svg` is deleted in the working tree. The
