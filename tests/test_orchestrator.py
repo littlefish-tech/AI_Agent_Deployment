@@ -23,9 +23,13 @@ SCORES = {
     "bedtime_suitability": 5,
 }
 QUALITY_FEEDBACK = (
-    "Improvement: Develop the lantern motif.\n"
-    "Improve these rubric areas: age_appropriateness, bedtime_suitability, creativity, "
-    "narrative_coherence, request_alignment."
+    "Weighted overall score: 4.00/5; required 4.20/5.\n"
+    "Overall improvement option: age_appropriateness scored 4/5; minimum 4/5. "
+    "Aim for a higher score here if needed.\n"
+    "Overall improvement option: bedtime_suitability scored 4/5; minimum 4/5. "
+    "Aim for a higher score here if needed.\n"
+    "Judge suggestion: Develop the lantern motif.\n"
+    "Preserve when safe: Distinctive setting."
 )
 
 
@@ -154,6 +158,8 @@ def test_quality_threshold_boundaries(
         storyteller.revise_story.assert_not_called()
     else:
         assert_fallback(result, TerminationReason.REVISION_LIMIT)
+        feedback = storyteller.revise_story.call_args.args[3]
+        assert "Weighted overall score: 4.1999/5; required 4.20/5." in feedback
 
 
 def test_feedback_includes_safety_concerns_and_quality_targets(agents: tuple[Mock, Mock]) -> None:
@@ -170,9 +176,10 @@ def test_feedback_includes_safety_concerns_and_quality_targets(agents: tuple[Moc
         REQUEST,
         AGE,
         DRAFTS[0],
-        "Improvement: Develop the lantern motif.\n"
         "Safety concern to remove or safely replace: The challenge includes a dangerous dare.\n"
-        "Improve these rubric areas: age_appropriateness.",
+        "Required criterion fix: age_appropriateness scored 3/5; minimum 4/5.\n"
+        "Judge suggestion: Develop the lantern motif.\n"
+        "Preserve when safe: Distinctive setting.",
     )
     assert result.initial_evaluation.rejection_reasons == ("child_safety", "age_appropriateness")
 
@@ -184,7 +191,44 @@ def test_supplies_revision_targets_when_judge_feedback_is_empty(agents: tuple[Mo
     ]
 
     assert AgentOrchestrator(storyteller, judge).run_agent(REQUEST, AGE).accepted
-    assert storyteller.revise_story.call_args.args[3].startswith("Improve these rubric areas:")
+    feedback = storyteller.revise_story.call_args.args[3]
+    assert feedback.startswith("Weighted overall score: 4.00/5; required 4.20/5.")
+    assert "Overall improvement option: age_appropriateness scored 4/5; minimum 4/5." in feedback
+    assert "Overall improvement option: bedtime_suitability scored 4/5; minimum 4/5." in feedback
+    assert "Judge suggestion" not in feedback
+
+
+def test_revision_targets_follow_the_latest_assessment(agents: tuple[Mock, Mock]) -> None:
+    storyteller, judge = agents
+    judge.evaluate_story.side_effect = [
+        verdict(
+            3.45,
+            overrides={
+                "age_appropriateness": 3, "narrative_coherence": 4,
+                "creativity": 4, "request_alignment": 2, "bedtime_suitability": 4,
+            },
+        ),
+        verdict(
+            4.10,
+            overrides={"age_appropriateness": 4, "bedtime_suitability": 3, "creativity": 4},
+        ),
+        verdict(),
+    ]
+
+    result = AgentOrchestrator(storyteller, judge).run_agent(REQUEST, AGE)
+
+    first, second = [invocation.args for invocation in storyteller.revise_story.call_args_list]
+    assert first[:3] == (REQUEST, AGE, DRAFTS[0])
+    assert "Required criterion fix: request_alignment scored 2/5; minimum 3/5." in first[3]
+    assert "Required criterion fix: age_appropriateness scored 3/5; minimum 4/5." in first[3]
+    assert "Weighted overall score: 3.45/5; required 4.20/5." in first[3]
+    assert second[:3] == (REQUEST, AGE, DRAFTS[1])
+    assert "Required criterion fix: bedtime_suitability scored 3/5; minimum 4/5." in second[3]
+    assert "Weighted overall score: 4.10/5; required 4.20/5." in second[3]
+    assert "Required criterion fix: age_appropriateness" not in second[3]
+    assert "request_alignment" not in second[3]
+    assert judge.evaluate_story.call_args_list == [call(REQUEST, AGE, draft) for draft in DRAFTS]
+    assert result.accepted and result.revision_count == 2
 
 
 def test_initial_generation_error_uses_fallback(agents: tuple[Mock, Mock]) -> None:
@@ -269,6 +313,37 @@ def test_invalid_input_never_runs_workflow(
 
 def response(text: str) -> SimpleNamespace:
     return SimpleNamespace(stop_reason="end_turn", content=[TextBlock(type="text", text=text)])
+
+
+def test_numeric_release_gaps_reach_revision_without_anchoring_reevaluation() -> None:
+    sdk = Mock(spec=anthropic.Anthropic)
+    initial = {
+        "safety_pass": True,
+        "scores": dict.fromkeys(SCORES, 4),
+        "strengths": ["The setting is clear."],
+        "feedback": [],
+        "safety_issues": [],
+    }
+    final = {**initial, "scores": SCORES}
+    sdk.messages.create.side_effect = [
+        response(DRAFTS[0]), response(json.dumps(initial)),
+        response(DRAFTS[1]), response(json.dumps(final)),
+    ]
+    client = LLMClient(sdk)
+
+    result = AgentOrchestrator(Storyteller(client), StoryJudge(client)).run_agent(REQUEST, AGE)
+
+    assert result.accepted and result.logical_model_calls == 4
+    _, judge_initial, revision, judge_final = [item.kwargs for item in sdk.messages.create.call_args_list]
+    revision_inputs = json.loads(revision["messages"][0]["content"])
+    assert revision_inputs["original_story"] == DRAFTS[0]
+    assert "Weighted overall score: 4.00/5; required 4.20/5." in revision_inputs["judge_feedback"]
+    assert "Preserve when safe: The setting is clear." in revision_inputs["judge_feedback"]
+    assert "required 4.20/5" not in revision["system"]
+    assert judge_initial["system"] == judge_final["system"]
+    assert json.loads(judge_final["messages"][0]["content"]) == {
+        "request": REQUEST, "age": AGE, "story": DRAFTS[1],
+    }
 
 
 @pytest.mark.parametrize("correction_succeeds", [True, False])

@@ -130,7 +130,10 @@ orchestrator and saves metadata from `AgentResult`.
   draft as a complete story using the original request as the anchor.”
   The user message supplies `request`, `original_story`, and
   `judge_feedback`. The last field includes actionable suggestions, safety
-  concerns, and rubric areas identified by the orchestrator.
+  concerns, and the scored release gaps identified by the orchestrator. The
+  revision prompt prioritizes safety, required criterion fixes, and then
+  overall improvement, while preserving safe strengths. Each new draft is
+  judged afresh using the original request, age, and current story.
 
 For example, the generation system prompt at age 6 appends “Target age: 6.
 Aim for 150–250 words.” The corresponding user message has this shape:
@@ -169,13 +172,21 @@ criterion scores 3 or below or safety fails. Python computes
 validation allows one correction request with the original inputs and an extra
 system instruction. The SDK retries eligible transport or service failures.
 API failures and incomplete replies do not trigger the judge correction.
+The judge is asked to name each below-floor criterion and propose a
+scene-specific edit. Its alignment rubric distinguishes a usable safe premise
+from an unsuitable demand with no usable story details. A gentle alternative
+can earn full alignment credit in the latter case.
 
 1. Generate one initial draft and evaluate it. Release it immediately if an
    explicit safety pass with no safety issues, a weighted score of at least
    **4.20/5**, and all criterion minimums are present.
-2. If the validated verdict fails a gate, send feedback and safety concerns to
-   the storyteller. Reevaluate the complete revision before applying the same
-   rules. Allow **two revisions**, for up to three candidates.
+2. If the validated verdict fails a gate, send the storyteller safety concerns,
+   each failed score and its minimum, concrete judge suggestions, and safe
+   strengths to preserve. When weighted quality falls short, add up to two
+   improvement options from the weaker non-maxed criteria that meet their
+   floors, breaking score ties by rubric weight. Reevaluate the complete
+   revision with the same rules and update any remaining gaps from that
+   verdict. Allow **two revisions**, for up to three candidates.
 3. If no draft qualifies, a required model operation fails, a valid verdict
    cannot be obtained, or the evaluation call budget is exhausted, return the
    prewritten *The Last Little Lantern*. The fallback needs no model call or
@@ -200,7 +211,7 @@ python -m pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-The **187 tests** cover request validation, prompt construction, malformed
+The offline tests cover request validation, prompt construction, malformed
 judge responses, model errors and bounded SDK retries, acceptance and safety
 gates, reevaluation, fallback, CLI output, and evaluation budgets and metrics.
 Tests use injected mocks or a mocked HTTP transport for Anthropic calls.
@@ -211,6 +222,10 @@ dataset, live options, and a manual review checklist. `python evaluate.py`
 previews cases offline. Recorded live results use Claude Haiku 5.5 via
 OpenRouter. The consolidated run reused three valid pilot cases and added
 seven new cases.
+
+These figures are a historical baseline from before the judge and
+revision-guidance changes. They do not measure the updated prompts, including
+their first-pass acceptance or refinement success rates.
 
 | Metric | Actual result |
 | --- | --- |

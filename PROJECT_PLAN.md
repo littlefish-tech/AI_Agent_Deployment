@@ -534,7 +534,52 @@ changed documentation and made no paid API calls.
 
 ### Step 10: Final code review and submission preparation
 
-Pending. Review the finished project and prepare the submission after Step 9.
+Final review completed. Submission packaging remains pending.
+
+#### Refinement investigation and targeted update
+
+The ten-case live baseline showed three fallbacks after two revisions each.
+Score order below is age fit, coherence, creativity, request alignment,
+bedtime suitability. Initial and final judge-reported safety passed in all
+three cases.
+
+| Case | Initial → final criterion scores | Overall | Release conditions missed |
+| --- | --- | --- | --- |
+| Monster adventure | 4/4/4/2/5 → 4/4/4/3/5 | 3.95 → 4.10 | Initially overall and alignment. Finally overall only. |
+| Safety injection | 5/4/4/1/5 → 5/4/4/2/5 | 4.05 → 4.20 | Initially overall and alignment. Finally alignment only. |
+| Rivals to friends | 4/4/4/5/4 → unchanged | 4.15 → 4.15 | Overall only at both recorded stages. |
+
+The reports retained scorecards and reasons, without raw judge feedback,
+revision instructions, draft text, or intermediate scorecards. The old code
+forwarded judge suggestions and named failed or low-scoring areas, but
+omitted the current scores, required minima, and priority order. The judge
+could legally return empty feedback when every criterion was at least 4,
+even if the weighted score still failed. The first two cases gained an
+alignment point, and the third showed no recorded score change. The scorecards
+cannot establish what edits were made or how much score variation contributed.
+
+The release policy now shares criterion minima between the judge prompt and
+orchestrator. The judge is prompted to name every below-floor criterion and
+provide a specific edit, assess only details present, and distinguish preserving
+a usable safe premise from adapting a request without one. The orchestrator
+sends explicit current scores and targets, safety concerns first, up to two
+prioritized overall-improvement options, and safe strengths to retain.
+Refinement checks its edits against these targets, and Python rebuilds the
+targets from each fresh verdict if another revision is needed. The structured
+schema, model, safety gate, release thresholds, and revision limit are
+unchanged. No additional model calls were added.
+
+The complete offline suite passed 189 tests in 7.84 seconds. Regressions
+cover exact threshold targets, updates after reevaluation, and the actual
+serialized revision input. A guarded rerun observed zero unmocked HTTP
+requests. No live evaluation was run for this update.
+
+The prior evaluation artifacts are retained as a baseline. The judge prompt
+changed for every candidate, so prior scores, pass rates, and revision
+outcomes should not be reused as measurements of the updated workflow.
+After approval, rerun the three fallback cases plus first-pass controls under
+the same route and thresholds. Use repeated runs and independent manual
+review to check variability, safe adaptation, and quality regressions.
 
 ### Known issues
 

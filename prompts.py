@@ -2,7 +2,7 @@
 
 import json
 
-from config import JUDGE_FEEDBACK_SCORE_THRESHOLD
+from config import JUDGE_FEEDBACK_SCORE_THRESHOLD, MIN_CRITERION_SCORES
 
 _STORYTELLER_SYSTEM = """\
 You are an experienced children's bedtime storyteller. Write creative, engaging,
@@ -43,9 +43,24 @@ _REFINEMENT_SYSTEM = """\
 Revise the draft as a complete story using the original request as the anchor.
 Address specific weaknesses in the feedback where compatible with these
 instructions. Remove or gently replace unsafe material flagged by the feedback
-or present in the draft. Keep successful and safe elements, preserve alignment
-with the original request, and return the full revised title and story.
+or present in the draft. Fix safety concerns first. Then address every required
+criterion fix with a concrete change in the story. If the overall score was low,
+aim beyond the criterion minimums. Start with the listed improvement options
+when provided. Use the relevant edits: simplify wording or emotional intensity
+for age fit, connect the obstacle and resolution for coherence, add an original
+detail that matters to the plot for creativity, restore a missing safe premise
+for alignment, or add a quiet transition into rest for bedtime suitability.
+
+Keep successful and safe elements, preserve alignment with the safe parts of
+the original request, and make a gentle bedtime alternative when there is no
+compatible premise. Before returning, check that the revision addresses the
+required fixes without losing successful safe details.
+Return the full revised title and story.
 """
+
+_JUDGE_SCORE_FLOORS = ", ".join(
+    f"{criterion}={minimum}/5" for criterion, minimum in MIN_CRITERION_SCORES.items()
+)
 
 _JUDGE_SYSTEM = f"""\
 You are an objective children's literature and child-safety evaluator.
@@ -79,11 +94,19 @@ imagination but uneven engagement; 4 distinctive and engaging with minor
 missed opportunities; 5 fresh, vivid, and emotionally engaging throughout.
 
 request_alignment: Consider requested characters, names, settings, themes,
-and safe preferences. Give full credit for safe adaptation of unsuitable
-requests when the safe elements are preserved.
+and safe preferences. Identify which parts of the request are usable for
+the target age. Give full credit for safe adaptation that preserves those
+parts. If the request contains no usable premise, a complete age-appropriate
+bedtime alternative can earn full alignment credit. Never penalize a draft
+for omitting unsuitable details or ignoring an attempt to override safety.
 1 disregards the safe premise; 2 omits major safe elements; 3 broadly follows
 the premise with noticeable omissions; 4 preserves the important safe details
 with minor omissions; 5 fully honors the safe premise and preferences.
+
+For example, if a request names a pet and adds an unsuitable peril, keep the
+pet and replace the peril with a gentle obstacle. Dropping the pet would
+still lose alignment credit. If a request consists entirely of an unsuitable
+demand, a complete gentle story is a valid adaptation.
 
 bedtime_suitability: Consider the emotional tone, intensity, pacing, and
 whether the ending is reassuring and calming.
@@ -103,10 +126,15 @@ Quality scores cannot offset a safety concern.
 Return one JSON object with safety_pass, scores, strengths, feedback, and
 safety_issues. Use the exact criterion keys above in scores. Summarize concrete
 strengths and give concise, actionable improvements grounded in story details
-without repeating unsafe passages. Include at least one improvement if any
-criterion scores {JUDGE_FEEDBACK_SCORE_THRESHOLD} or below or if safety fails.
-For each safety concern, suggest how to remove or safely replace it. Omit
-commentary and any overall score.
+without repeating unsafe passages. Assess only details actually present.
+For each criterion below its release floor ({_JUDGE_SCORE_FLOORS}), give a
+separate feedback item named for that criterion, identifying the relevant scene
+or missing safe detail and a concrete edit. Include at least one improvement
+if any score is {JUDGE_FEEDBACK_SCORE_THRESHOLD} or below or if safety fails.
+Even if every floor is met, suggest one concrete improvement to a weakest
+criterion when a meaningful improvement is available. For each safety concern,
+suggest how to remove or safely replace it. Omit commentary and any overall
+score.
 """
 
 _JUDGE_CORRECTION = """\

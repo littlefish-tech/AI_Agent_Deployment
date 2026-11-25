@@ -31,6 +31,13 @@ MIN_OVERALL_SCORE: Final = 4.2
 MIN_CRITERION_SCORE: Final = 3
 MIN_AGE_APPROPRIATENESS_SCORE: Final = 4
 MIN_BEDTIME_SUITABILITY_SCORE: Final = 4
+MIN_CRITERION_SCORES: Final[Mapping[str, int]] = MappingProxyType(
+    {
+        **dict.fromkeys(JUDGE_WEIGHTS, MIN_CRITERION_SCORE),
+        "age_appropriateness": MIN_AGE_APPROPRIATENESS_SCORE,
+        "bedtime_suitability": MIN_BEDTIME_SUITABILITY_SCORE,
+    }
+)
 MIN_STORY_AGE: Final = 5
 MAX_STORY_AGE: Final = 10
 DEFAULT_STORY_AGE: Final = 7

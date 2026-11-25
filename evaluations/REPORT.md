@@ -1,5 +1,8 @@
 # Live bedtime story evaluation
 
+This is the measured baseline before the judge-prompt and revision-guidance
+update. A new live run is needed to measure the updated workflow.
+
 Model ID: `anthropic/claude-haiku-5.5`.
 Logical request budget: 90. SDK retries and token usage were not measured.
 Generation used the production acceptance and refinement rules. The initial draft is the baseline, and the final candidate is the last generated draft, when evaluated.

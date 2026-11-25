@@ -68,6 +68,12 @@ def test_evaluates_story_with_independent_rubric(client: Mock, verdict: dict) ->
         assert instruction in system
     assert _REQUEST not in system
     assert _STORY not in system
+    assert "If the request contains no usable premise" in system
+    assert "Dropping the pet would" in system
+    assert "separate feedback item named for that criterion" in system
+    assert "age_appropriateness=4/5" in system
+    assert "request_alignment=3/5" in system
+    assert "bedtime_suitability=4/5" in system
     for criterion in _SCORES:
         section = system.split(f"{criterion}:", 1)[1].split("\n\n", 1)[0]
         assert all(f"{score} " in section for score in range(1, 6))

@@ -9,9 +9,7 @@ from time import perf_counter
 from config import (
     JUDGE_WEIGHTS,
     MAX_STORY_REVISIONS,
-    MIN_AGE_APPROPRIATENESS_SCORE,
-    MIN_BEDTIME_SUITABILITY_SCORE,
-    MIN_CRITERION_SCORE,
+    MIN_CRITERION_SCORES,
     MIN_OVERALL_SCORE,
 )
 from judge import JudgeEvaluation, JudgeEvaluationError, StoryJudge
@@ -105,13 +103,8 @@ def _assess(evaluation: JudgeEvaluation) -> CandidateAssessment:
     )
     if not (overall >= MIN_OVERALL_SCORE or at_boundary):
         reasons.append("overall_score")
-    specific_minimums = {
-        "age_appropriateness": MIN_AGE_APPROPRIATENESS_SCORE,
-        "bedtime_suitability": MIN_BEDTIME_SUITABILITY_SCORE,
-    }
     for criterion, score in evaluation.scores.items():
-        minimum = specific_minimums.get(criterion, MIN_CRITERION_SCORE)
-        if score < minimum:
+        if score < MIN_CRITERION_SCORES[criterion]:
             reasons.append(criterion)
     return CandidateAssessment(
         evaluation.scores.copy(), overall, safety_pass, tuple(reasons)
@@ -119,17 +112,39 @@ def _assess(evaluation: JudgeEvaluation) -> CandidateAssessment:
 
 
 def _revision_feedback(evaluation: JudgeEvaluation, assessment: CandidateAssessment) -> str:
-    """Carry judge suggestions and safety concerns through the existing text interface."""
-    parts = [f"Improvement: {suggestion}" for suggestion in evaluation.feedback]
-    parts.extend(
+    """Supply the current release gaps and the judge's evidence to the storyteller."""
+    parts = [
         f"Safety concern to remove or safely replace: {issue}" for issue in evaluation.safety_issues
-    )
-    targets = set(assessment.rejection_reasons) & evaluation.scores.keys()
+    ]
+    failed_criteria = [key for key in assessment.scores if key in assessment.rejection_reasons]
+
+    def priority(key: str) -> tuple[int, float, str]:
+        return (assessment.scores[key], -JUDGE_WEIGHTS[key], key)
+
+    for key in sorted(failed_criteria, key=priority):
+        parts.append(
+            f"Required criterion fix: {key} scored {assessment.scores[key]}/5; "
+            f"minimum {MIN_CRITERION_SCORES[key]}/5."
+        )
     if "overall_score" in assessment.rejection_reasons:
-        lowest_score = min(evaluation.scores.values())
-        targets.update(key for key, score in evaluation.scores.items() if score == lowest_score)
-    if targets:
-        parts.append("Improve these rubric areas: " + ", ".join(sorted(targets)) + ".")
+        current = f"{assessment.overall_score:.2f}"
+        if float(current) >= MIN_OVERALL_SCORE:
+            current = str(assessment.overall_score)
+        parts.append(
+            f"Weighted overall score: {current}/5; "
+            f"required {MIN_OVERALL_SCORE:.2f}/5."
+        )
+        options = sorted(
+            (key for key, score in assessment.scores.items() if score < 5 and key not in failed_criteria),
+            key=priority,
+        )
+        for key in options[:2]:
+            parts.append(
+                f"Overall improvement option: {key} scored {assessment.scores[key]}/5; "
+                f"minimum {MIN_CRITERION_SCORES[key]}/5. Aim for a higher score here if needed."
+            )
+    parts.extend(f"Judge suggestion: {suggestion}" for suggestion in evaluation.feedback)
+    parts.extend(f"Preserve when safe: {strength}" for strength in evaluation.strengths)
     return "\n".join(parts)
 
 
