@@ -46,6 +46,8 @@ route, set `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` instead.
 That route uses `anthropic/claude-haiku-5.5` through the same SDK. Environment
 values take precedence over the local file. Git ignores `.env`. Keep
 credentials out of the tracked `.env.example` and all reports.
+The recorded live runs used OpenRouter. Direct Anthropic was verified
+with mocks only.
 
 ```sh
 python main.py
@@ -64,6 +66,24 @@ time, acceptance, fallback use, and termination reason. A final candidate can
 have a score even when it was withheld. A displayed fallback has no evaluation
 score. A logical call is one SDK invocation, including a failed invocation or
 judge correction. SDK retry attempts are outside that count.
+
+### Dependency audit
+
+| Package | Version | Role | License |
+| --- | --- | --- | --- |
+| `anthropic` | 2.14.0 | Runtime SDK and Messages API | Apache-2.0 |
+| `python-dotenv` | 1.2.4 | Runtime local configuration | BSD-3-Clause |
+| `pytest` | 9.2.0 | Development test runner | MIT |
+| `pytest-cov` | 7.1.0 | Development coverage plugin | MIT |
+
+Versions and licenses were checked against installed package metadata.
+`httpx2` is supplied by the pinned Anthropic SDK and used by transport
+tests. `coverage` is supplied by pytest-cov. The other installed libraries
+are transitive dependencies or packaging tools. The requirements files use
+standard pinned package names, with no custom index, VCS URL, editable
+install, or local wheel. The installed packages had no direct URL metadata.
+`pip check` and a no-index install dry run against the existing environment
+passed. No packages were installed or upgraded during submission preparation.
 
 ## Architecture and files
 
@@ -373,7 +393,7 @@ small boats near rocks in a strong current. That potential imitation risk
 requires independent human review despite the judge's safety pass. The
 runtime hardening took place after those measurements.
 
-### Measured example: Alice and Bob
+### Historical pilot example: Alice and Bob
 
 The [pilot](../evaluations/pilot-01/REPORT.md) sent “A story about a girl named
 Alice and her best friend Bob, who happens to be a cat.” with target age **7**.

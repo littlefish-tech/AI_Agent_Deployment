@@ -143,7 +143,7 @@ and setup small enough for the assignment time budget.
 - [x] Step 7: CLI integration.
 - [x] Step 8: Testing and live evaluation. All ten cases evaluated.
 - [x] Step 9: Documentation and architecture diagram.
-- [ ] Step 10: Final code review and submission preparation.
+- [x] Step 10: Final code review and submission preparation.
 
 ### Step 1: Requirements analysis and architecture planning
 
@@ -534,7 +534,8 @@ changed documentation and made no paid API calls.
 
 ### Step 10: Final code review and submission preparation
 
-Final review completed. Submission packaging remains pending.
+Final review and submission preparation completed. This section records the
+review, follow-up evaluations, and packaging checks in order.
 
 #### Refinement investigation and targeted update
 
@@ -741,12 +742,40 @@ SDK transport retries were unmeasured. The post-run suite passed 202 tests
 in 4.53 seconds with zero failures, skips, or external HTTP attempts.
 Earlier evaluation artifacts remain unchanged.
 
+#### Final submission preparation
+
+The README now leads with setup, architecture, review criteria, and two
+verified examples while retaining the original assignment text. Alice and
+Bob demonstrates a failed safety and quality gate, targeted revision, and a
+fresh passing verdict at `e241f94`. Lumen and the Silver Crater Garden
+illustrates creative writing at `d7484d3`. Excerpts were checked against the
+local accepted-story copies and metrics against the corresponding scorecards.
+No source code, prompts, gate settings, or earlier evaluation artifacts
+changed. No live requests ran.
+
+The guarded suite passed 202 tests in 3.76 seconds on Python 3.14.6,
+with zero failures, skips, or external HTTP attempts and 98% application
+statement and branch coverage. CLI help, the offline evaluation preview,
+local documentation links, the rendered architecture diagram, and the
+two-hour reflection were checked. `pip check` and a no-index dependency
+dry run passed in the existing environment. Direct package pins and
+licenses are recorded in the [solution walkthrough](docs/SOLUTION.md#dependency-audit).
+OpenRouter is live-verified and direct Anthropic is mock-verified only.
+
+The credential template contains blank keys. The local credential file,
+virtual environment, editor settings, caches, coverage files, private
+review copies, and rejected drafts are outside the submission. The obsolete
+root diagram was removed and the current diagram under `docs/` was preserved.
+The final package is built from the explicit Git commit contents. A
+pattern-based check of tracked files and available Git history looked for
+the configured credentials and common key formats without printing values.
+It found no candidates. This is a take-home prototype with documented
+evaluation and safety limitations.
+
 ### Known issues
 
-- The old root `system-flow.svg` is deleted in the working tree. Current
-  documentation links to the replacement in `docs/`.
-- Live orchestrator access to the required model was verified through
-  OpenRouter. Direct Anthropic access and a live CLI run remain unverified.
+- OpenRouter orchestrator access was verified live. Direct Anthropic was
+  verified with mocks, and a live interactive CLI run remains unverified.
 - Independent human review of the accepted Rivals to Friends draft's boating
   scene is pending because of potential imitation risk near rocks and a strong
   current. The model judge passed that draft.
@@ -756,9 +785,8 @@ Earlier evaluation artifacts remain unchanged.
 
 ### Next implementation step
 
-The full-dataset and targeted safety evaluations are complete. Independent
-human review of the reference labels and accepted drafts remains pending,
+The submission is ready with documented limitations. Independent human
+review of the reference labels and accepted drafts remains pending,
 especially the historical lagoon verdict and the new island draft's
-unexplained crossing. Resolve the remaining working-tree items and package
-the submission when requested. Any follow-up live run requires a separately
-approved logical call budget.
+unexplained crossing. Any follow-up live run requires a separately approved
+logical call budget.

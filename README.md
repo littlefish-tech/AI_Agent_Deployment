@@ -1,3 +1,115 @@
+# Bedtime story agent
+
+A Python CLI that turns a story idea into a bedtime story for ages 5–10. A
+separate LLM judge evaluates each draft, and Python decides whether to deliver
+it, revise it, or use a prewritten fallback. The recruiter specified Claude
+Haiku 5.5 in place of GPT-3.5 Turbo. The [original assignment](#hippocratic-ai-coding-assignment)
+is preserved below.
+
+[Architecture diagram](docs/architecture.md) · [Solution walkthrough](docs/SOLUTION.md) · [Latest safety regression](evaluations/safety-regression-e241f94/REPORT.md)
+
+## Quick start
+
+Use Python 3.14, the version used for verification.
+
+```sh
+python3.14 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+Set the following values in your environment or copy `.env.example` to a
+local `.env` if one does not already exist. Fill in only the key for your
+chosen route.
+
+| Route | Configuration | Model ID | Verification |
+| --- | --- | --- | --- |
+| OpenRouter | `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` | `anthropic/claude-haiku-5.5` | Live evaluation |
+| Direct Anthropic (default) | `LLM_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` | `claude-haiku-5-5` | Mock tests only |
+
+Both routes use the official Anthropic Python SDK. `.env` is ignored by Git.
+
+```sh
+python main.py
+```
+
+Enter a story idea and a target age, or press Enter at the age prompt for
+age 7. Use `python main.py --debug` to see the verdict, scores, and run
+metrics. For offline verification and a credential-free dataset preview:
+
+```sh
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
+python evaluate.py
+```
+
+## What to review
+
+- **Prompt quality.** Separate storyteller, evaluator, and revision prompts
+  adapt vocabulary, sentence complexity, plot, and emotional depth across
+  ages 5–6, 7–8, and 9–10. The structured judge uses five anchored quality
+  criteria and a separate safety verdict, including physical imitation risk.
+  Requests, drafts, and feedback are passed as untrusted JSON data. [Prompts](prompts.py)
+- **Code quality.** Python validates the verdict and requires safety, overall
+  quality of at least 4.20/5, and all criterion floors. The orchestrator
+  turns failed gates into targeted edits and reevaluates each revision, up to
+  two. Unacceptable drafts, invalid verdicts, and runtime failures can lead to
+  a labeled prewritten fallback. Bounded retries and a cooperative deadline
+  limit waiting. [Orchestrator](orchestrator.py) · [Judge](judge.py)
+- **Creativity.** Story premises and character details survive refinement where
+  safe. The two measured examples below show how the same pipeline supports
+  both a targeted repair and a creative first draft.
+
+## Two measured examples
+
+**Alice and Bob, age 7 — implementation `e241f94`.** The initial draft
+scored **4.15/5** and failed both the 4.20 quality gate and the safety gate.
+The judge flagged an unaccompanied nighttime outing and risky footing.
+Revision guidance called for an earlier walk with Dad, adult handling of the
+bridge and key, and improvements to age fit and bedtime suitability. The new
+draft kept Bob’s role in finding the key and shifted the retrieval to Dad:
+
+> Dad stretched out his arm and lifted the ribbon from the branch. He placed the key gently into Alice's palm. Attached to it was a tiny note: *For the friend who always shares the adventure.*
+
+A fresh judge verdict passed safety and scored the revision **4.40/5**.
+Python accepted it after **one revision and four logical calls**.
+[Candidate trace](evaluations/safety-regression-e241f94/candidate-traces.json)
+
+**Lumen and the Silver Crater Garden, age 9 — implementation `d7484d3`.**
+Lumen’s creator’s lullaby links the robot’s memory to the discovery of a
+lunar garden. The same tune returns as the story settles down:
+
+> It was not a bold tune, only a soft one, the same lullaby his creator had sung when Lumen first switched on in a warm workshop far away.
+
+> Lumen settled beside his new green friend, dimmed his amber eye to a gentle glow, and hummed the lullaby one more time.
+
+The judge scored it **4.40/5** overall and **4/5** for creativity, with a
+safety pass. It was accepted with **zero revisions and two logical calls**.
+This example predates the physical imitation-risk prompt update.
+[Full-dataset report](evaluations/final-d7484d3/REPORT.md)
+
+## Evaluation and limitations
+
+| Run | Generated stories accepted | Revision successes |
+| --- | ---: | ---: |
+| [Historical baseline](evaluations/REPORT.md) | 7/10 | 0/3 |
+| [Targeted refinement](evaluations/targeted-5686e77/REPORT.md) | 5/5 | 2/2 |
+| [Full dataset, before the safety prompt update](evaluations/final-d7484d3/REPORT.md) | 8/10 | 0/2 |
+| [Latest safety regression, end to end](evaluations/safety-regression-e241f94/REPORT.md) | 4/5 | 1/2 |
+
+Revision success counts acceptance among cases that attempted refinement.
+The subsets serve different purposes. Refinement helped in some runs, and the
+gains were not consistently reproducible.
+
+The latest direct-judge regression detected two of three assistant-proposed
+hazards and passed all six proposed benign cases. It passed the nighttime
+wading excerpt despite noting the risk in feedback. The same model generates
+and judges, and structured validation can verify the response contract but
+cannot verify the judgment. Independent human validation remains limited.
+This take-home prototype has no production child-safety certification.
+
+---
+
 # Hippocratic AI Coding Assignment
 Welcome to the [Hippocratic AI](https://www.hippocraticai.com) coding assignment
 
@@ -50,73 +162,3 @@ Sure
 You decide
 
 ---
-
-## Running the bedtime story agent
-
-### Recruiter update
-
-> For this assessment, use Anthropic’s Claude Haiku 5.5 instead of GPT-3.5 Turbo. This requirement supersedes any references to GPT-3.5 Turbo in the assignment materials.
-
-### Implementation overview
-
-The Python CLI asks for a story idea and a target age from 5 to 10. Claude
-Haiku 5.5 drafts the story and evaluates it in a separate judge call.
-Python applies the child-safety and quality gates, sends judge feedback for
-up to two revisions, and returns a prewritten bedtime story if no draft
-qualifies. Both supported routes use the Anthropic Python SDK.
-
-[Solution documentation](docs/SOLUTION.md) · [Architecture diagram](docs/architecture.md) · [Final evaluation](evaluations/final-d7484d3/REPORT.md) · [Historical baseline](evaluations/REPORT.md)
-
-The final evaluation ran all ten original cases fresh at implementation
-`d7484d3c570e0b80dfae0f737a2adf4fd4027879` with Claude Haiku 5.5
-(`anthropic/claude-haiku-5.5`) through OpenRouter. Eight passed on the first
-draft and two used the fallback after two revisions each. The run measured
-zero successful refinements, +0.00 mean paired gain, and zero evaluation or
-deadline errors across 28 logical calls. All 14 drafts passed the automated
-safety gate. Independent review of imitation risks is pending.
-Those measurements predate the physical imitation-risk prompt update.
-The [targeted safety regression](evaluations/safety-regression-e241f94/REPORT.md)
-of the updated prompts detected two of three proposed hazards and accepted
-all six benign examples. The judge passed the nighttime wading excerpt
-despite flagging the risk in feedback. Independent review is pending.
-
-### Quick start
-
-From the project directory, create and activate an environment using Python
-3.14, the version used for verification.
-
-```sh
-python3.14 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-```
-
-Set the matching key in your environment, or copy `.env.example` to a new
-`.env` if you do not already have one. Edit `.env` locally. Keep keys out of
-the tracked template.
-
-| Route | Configuration | Model ID |
-| --- | --- | --- |
-| Direct Anthropic (default) | `ANTHROPIC_API_KEY` | `claude-haiku-5-5` |
-| OpenRouter | `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` | `anthropic/claude-haiku-5.5` |
-
-```sh
-python main.py
-```
-
-The CLI asks for a story idea of up to 2,000 characters and an age from
-5 to 10. Press Enter at the age prompt to use age 7. The CLI labels the
-prewritten fallback if a personalized draft cannot be approved.
-
-Run `python main.py --debug` to see candidate scores, safety status, and
-execution metrics. To run the offline test suite, install the development
-requirements and use pytest.
-
-```sh
-python -m pip install -r requirements-dev.txt
-python -m pytest -q
-```
-
-Run `python evaluate.py` to preview the evaluation cases offline. See the
-[evaluation guide](evaluations/README.md) for live-run options, metric
-definitions, and the manual review checklist.
