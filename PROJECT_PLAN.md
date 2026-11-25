@@ -24,7 +24,7 @@ to the orchestrator. The storyteller generates an initial draft. The judge
 evaluates that draft against the request and target age, returning structured
 scores, a safety verdict, and actionable feedback. The orchestrator applies the
 acceptance rules and either returns an approved story, requests a revision, or
-ends with a brief user-facing message. Each revision goes through the full
+returns a prewritten fallback story. Each revision goes through the full
 evaluation again. The storyteller and judge share one Anthropic client.
 
 ### Planned directory structure
@@ -81,9 +81,10 @@ instructions for dangerous acts.
 
 Each dimension uses criterion-specific anchors from 1 (unacceptable) through
 5 (excellent). Python calculates the weighted mean using configurable relative
-weights. Proposed Step 6 acceptance defaults require a valid evaluation, a
-passing child-safety verdict, a weighted score of at least 4, and every
-dimension at least 3. Keep both quality thresholds configurable. A missing or
+weights. Acceptance requires a valid evaluation, a passing child-safety verdict,
+a weighted score of at least 4.2, scores of at least 4 for age appropriateness
+and bedtime suitability, and scores of at least 3 for the other dimensions.
+The thresholds are centralized in `config.py`. A missing or
 malformed verdict, judge refusal, or judge error cannot authorize delivery.
 
 ## Refinement strategy and technical decisions
@@ -96,8 +97,9 @@ malformed verdict, judge refusal, or judge error cannot authorize delivery.
 3. Evaluate each new draft from scratch. Return the first draft that passes.
 4. Stop after two revisions, for a maximum of three drafts and three evaluation
    rounds. Each round may make one additional request to correct an invalid
-   response. If no draft passes, or a usable evaluation cannot be obtained,
-   return a safe failure message without a draft.
+   response. If no draft passes, or a required generation or evaluation
+   operation fails, return the prewritten fallback with no delivered evaluation.
+   Invalid user input raises a validation error.
 
 Keep the acceptance logic in Python so the judge supplies evidence and cannot
 set thresholds or bypass the release decision. Validate the judge response
@@ -129,7 +131,7 @@ and setup small enough for the assignment time budget.
 - [x] Step 3: Anthropic API client and smoke test.
 - [x] Step 4: Storyteller and refinement prompts.
 - [x] Step 5: LLM Judge.
-- [ ] Step 6: Agent orchestrator.
+- [x] Step 6: Agent orchestrator.
 - [ ] Step 7: CLI integration.
 - [ ] Step 8: Testing and live evaluation.
 - [ ] Step 9: Documentation and architecture diagram.
@@ -192,7 +194,27 @@ instruction. Shared-client errors propagate through the existing SDK path.
 The Step 5 run of `python -B -m pytest -q -p no:cacheprovider` passed all 100
 tests, including 52 new mocked cases. No live API calls were made. The tests
 verify the software contract. Feedback usefulness, rubric accuracy, and
-child-safety accuracy still need live evaluation. Steps 6–10 remain.
+child-safety accuracy still need live evaluation.
+
+Step 6 added `AgentOrchestrator.run_agent()` with injected storyteller and judge
+agents and deterministic release decisions. The overall comparison tolerates
+only a few floating-point units at the exact threshold. Refinement gets judge
+feedback and safety concerns through the existing text interface, plus targeted
+rubric areas when scores fall below the thresholds. All revised drafts require
+a fresh assessment. The prewritten fallback has no delivered evaluation.
+
+`AgentResult` records generation and evaluation attempts, completed revisions,
+score-only assessment history, the final candidate and delivered assessments,
+a termination reason, and latency measured with a monotonic clock. The shared
+client measures application calls to the SDK inside the workflow scope,
+including failed calls and judge corrections. The maximum is nine logical
+calls for three candidates with one correction each. SDK retries, network
+requests, and billed usage are outside this counter. Rejected drafts and raw
+feedback are excluded from assessment history.
+
+The Step 6 run of `python -B -m pytest -q -p no:cacheprovider` passed all 130
+tests, including 30 new orchestration cases with mocked agents or SDK responses.
+No live API calls were made. Steps 7–10 remain.
 
 ### Known issues
 
@@ -205,7 +227,7 @@ child-safety accuracy still need live evaluation. Steps 6–10 remain.
 
 ### Next implementation step
 
-Complete Step 6 by wiring the storyteller and judge into an orchestrator.
-Require explicit safety approval before release, apply configurable quality
-thresholds, and pass actionable feedback into at most two revisions, each
-followed by reevaluation. Test approval, revision, and failure paths offline.
+Complete Step 7 by wiring the CLI to the orchestrator with one shared
+`LLMClient`. Validate CLI input and handle client initialization errors.
+Display the delivered story with a clear distinction for fallback output.
+Test CLI behavior offline.

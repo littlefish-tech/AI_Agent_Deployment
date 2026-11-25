@@ -1,5 +1,10 @@
 """Shared text-only client for the storyteller and judge."""
 
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
+
 from anthropic import (
     Anthropic,
     APIConnectionError,
@@ -20,6 +25,29 @@ from config import (
     REQUEST_TIMEOUT_SECONDS,
     get_anthropic_api_key,
 )
+
+
+@dataclass
+class ModelCallCounter:
+    """Count SDK calls initiated by the application within one scope."""
+
+    count: int = 0
+
+
+_active_call_counter: ContextVar[ModelCallCounter | None] = ContextVar(
+    "active_model_call_counter", default=None
+)
+
+
+@contextmanager
+def track_model_calls() -> Iterator[ModelCallCounter]:
+    """Measure logical calls, including failed requests and judge corrections."""
+    counter = ModelCallCounter()
+    token = _active_call_counter.set(counter)
+    try:
+        yield counter
+    finally:
+        _active_call_counter.reset(token)
 
 
 class LLMClientError(RuntimeError):
@@ -59,6 +87,9 @@ class LLMClient:
         if type(max_output_tokens) is not int or max_output_tokens < 1:
             raise ValueError("max_output_tokens must be a positive integer.")
 
+        counter = _active_call_counter.get()
+        if counter is not None:
+            counter.count += 1
         try:
             response = self._client.messages.create(
                 model=MODEL_ID,

@@ -23,6 +23,11 @@ JUDGE_WEIGHTS: Final[Mapping[str, float]] = MappingProxyType(
     }
 )
 JUDGE_FEEDBACK_SCORE_THRESHOLD: Final = 3
+MAX_STORY_REVISIONS: Final = 2
+MIN_OVERALL_SCORE: Final = 4.2
+MIN_CRITERION_SCORE: Final = 3
+MIN_AGE_APPROPRIATENESS_SCORE: Final = 4
+MIN_BEDTIME_SUITABILITY_SCORE: Final = 4
 
 
 def get_anthropic_api_key() -> str | None:
