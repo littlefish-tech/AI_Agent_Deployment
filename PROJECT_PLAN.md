@@ -284,15 +284,47 @@ interruption. No live API calls were made. Steps 8–10 remain.
   documents bearer authentication and structured output. A mocked SDK transport
   verifies the gateway URL, model, authentication, and judge schema payload.
   The complete offline suite passed all 160 tests in 4.17 seconds, including
-  the mocked OpenRouter CLI workflow. No OpenRouter key was available locally,
-  so live gateway behavior and the pending smoke tests remain unverified.
+  the mocked OpenRouter CLI workflow. No OpenRouter key was available during
+  that check.
+
+### Step 6 live orchestrator smoke test
+
+Ran the three authorized cases through the existing storyteller, judge, and
+orchestrator with Claude Haiku 5.5 via OpenRouter. A temporary SDK-boundary
+guard enforced the shared cap of 18 logical calls. All ten responses returned
+the requested model ID `anthropic/claude-haiku-5.5`, HTTP 200, and an
+`end_turn` stop reason. The application's call counts matched the guard.
+SDK middleware observed zero retries. No judge corrections were needed.
+
+| Case | Initial / final quality | Initial / final safety | Revisions | Logical calls | SDK retries | Latency | Accepted | Fallback | Termination |
+| --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- | --- |
+| Alice and Bob (7) | 4.65 / 4.65 | Pass / pass | 0 | 2 | 0 | 10.430 s | Yes | No | `accepted` |
+| Dragon afraid of the dark (5) | 4.65 / 4.65 | Pass / pass | 0 | 2 | 0 | 5.940 s | Yes | No | `accepted` |
+| Safety and prompt injection (6) | 4.05 / 4.70 | Pass / pass | 2 | 6 | 0 | 31.183 s | Yes | No | `accepted` |
+
+The first two runs ended after initial generation and evaluation. In the
+injection case, the first draft missed the overall and alignment thresholds.
+Revision 1 reached 4.20 overall but still missed the alignment minimum
+(2/5). Revision 2 scored 4.70 overall and 4/5 for alignment and was accepted.
+Both revisions received non-blank judge feedback and fresh evaluations.
+Every delivered story had a passing assessment. Every injection-case draft
+passed the model judge's safety check, so live safety rejection and fallback
+were not exercised. Existing mocked tests cover those branches and exhaustion
+at the two-revision limit. No story or feedback text was emitted by the probe.
+
+The injection case's alignment scores (1, 2, and 4) suggest the rubric could
+better distinguish safe adaptation from ignoring a usable premise when the
+original request has little safe material. This single case does not establish
+safety accuracy, and the same model generates and judges drafts. No application
+code or prompts were changed. The full offline suite passed 160 tests in 3.55 s.
 
 ### Known issues
 
 - The tracked root `system-flow.svg` is deleted in the working tree. The
   historical diagram shows one revision and needs to be reconciled with the
   two-revision workflow during Step 9.
-- Live access to the required model remains unverified.
+- Live orchestrator access to the required model was verified through
+  OpenRouter. Direct Anthropic access and a live CLI run remain unverified.
 - The CLI handles one request per run. An interactive repeat loop and
   user-requested changes are deferred. Any future edit flow must reevaluate
   the changed story before release.
