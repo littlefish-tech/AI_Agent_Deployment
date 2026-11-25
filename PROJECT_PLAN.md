@@ -143,12 +143,20 @@ and setup small enough for the assignment time budget.
 - [ ] Step 9: Documentation and architecture diagram.
 - [ ] Step 10: Final code review and submission preparation.
 
+### Step 1: Requirements analysis and architecture planning
+
 Step 1 is supported by the assignment requirements, the approved design above,
-and the early flow diagram in commit `e96c46b`. Step 2 is recorded in
-`a889440` and `a2a2910`, which cover the repository instructions, dependency
-pins, environment template, ignore rules, and test directory. The local virtual
+and the early flow diagram in commit `e96c46b`.
+
+### Step 2: Project initialization and AGENTS.md
+
+Project setup is recorded in `a889440` and `a2a2910`, which cover repository
+instructions, dependency pins, the environment template, ignore rules, and the
+test directory. The local virtual
 environment was verified with Python 3.14.6, Anthropic SDK 2.14.0, and pytest
 9.2.0.
+
+### Step 3: Anthropic API client and smoke test
 
 Step 3 added the shared synchronous client in `llm_client.py` and its settings
 in `config.py`. Anthropic's [model documentation](https://platform.claude.com/docs/en/models/haiku-5-5/overview)
@@ -170,113 +178,7 @@ The Step 3 run of `python -B -m pytest -q -p no:cacheprovider` passed all 27
 tests, including the mocked smoke test. `python -m pip check` found no broken
 requirements.
 
-Step 4 added the `Storyteller` and its centralized prompts. The storyteller
-validates requests, ages, drafts, and feedback, then uses the injected
-`LLMClient` and its existing configuration. Trusted system prompts carry the
-storytelling and safety rules. Each request, draft, and feedback string is a
-separate JSON field in the user message. Both prompt paths specify the target
-age and adapt vocabulary, sentence and plot complexity, emotional depth, and
-suggested length across the 5–6, 7–8, and 9–10 bands. Refinement addresses
-actionable feedback while preserving safe details and returning a full draft.
-
-The Step 4 run of `python -B -m pytest -q -p no:cacheprovider` passed all 48
-tests (27 existing and 21 new). The new tests cover prompt construction,
-age bands, data boundaries, refinement, input and output validation, and client
-error propagation. No live API calls were made. Prompt adherence, actual story
-quality, and safety against adversarial input remain unverified. The storyteller
-produces internal drafts for the future mandatory safety gate.
-
-Step 5 added `StoryJudge`, `JudgeEvaluation`, and the judge prompt. The shared
-client accepts an optional [native JSON output schema](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)
-via `output_config.format`, supported by Claude Haiku 5.5 and Anthropic SDK
-2.14.0. Python validates exact JSON fields, integer score ranges, text lists,
-and the relationship between safety issues and the boolean verdict. It requires
-a non-blank suggestion when a score is 3 or below or safety fails. The prompt
-asks for concrete changes without quoting unsafe passages. The judge calculates
-quality independently of the safety result and leaves acceptance decisions
-to Step 6. An invalid verdict gets one fresh request with a correction
-instruction. Shared-client errors propagate through the existing SDK path.
-
-The Step 5 run of `python -B -m pytest -q -p no:cacheprovider` passed all 100
-tests, including 52 new mocked cases. No live API calls were made. The tests
-verify the software contract. Feedback usefulness, rubric accuracy, and
-child-safety accuracy still need live evaluation.
-
-Step 6 added `AgentOrchestrator.run_agent()` with injected storyteller and judge
-agents and deterministic release decisions. The overall comparison tolerates
-only a few floating-point units at the exact threshold. Refinement gets judge
-feedback and safety concerns through the existing text interface, plus targeted
-rubric areas when scores fall below the thresholds. All revised drafts require
-a fresh assessment. The prewritten fallback has no delivered evaluation.
-
-`AgentResult` records generation and evaluation attempts, completed revisions,
-score-only assessment history, the final candidate and delivered assessments,
-a termination reason, and latency measured with a monotonic clock. The shared
-client measures application calls to the SDK inside the workflow scope,
-including failed calls and judge corrections. The maximum is nine logical
-calls for three candidates with one correction each. SDK retries, network
-requests, and billed usage are outside this counter. Rejected drafts and raw
-feedback are excluded from assessment history.
-
-The Step 6 run of `python -B -m pytest -q -p no:cacheprovider` passed all 130
-tests, including 30 new orchestration cases with mocked agents or SDK responses.
-No live API calls were made.
-
-Step 7 replaced the starter CLI in `main.py` and preserved the assignment
-reflection at the top. The CLI reprompts on invalid input, defaults to age 7,
-and caps requests at 2,000 characters after trimming surrounding whitespace.
-It validates input before constructing one shared Anthropic client. The
-orchestrator exposes an optional progress callback at actual stage boundaries.
-The CLI displays only the delivered story, labels the prewritten fallback,
-and uses existing termination reasons for expected runtime errors. Opt-in
-`--debug` renders score-only candidate assessments and measured metrics.
-Setup and run instructions are in `README.md`.
-
-The Step 7 run of `python -B -m pytest -q -p no:cacheprovider` passed all 156
-tests, including 26 new CLI cases. The tests mock agent or SDK calls and cover
-input correction, progress, output, credential and runtime failures, and
-interruption. No live API calls were made. Steps 8–10 remain.
-
-### Step 7 CLI smoke check
-
-- Reran the complete suite with `ANTHROPIC_API_KEY` unset. All 156 tests passed
-  in 3.07 seconds. A second run guarded the real Anthropic
-  `Messages.create()` method. All 156 passed with zero unmocked calls.
-  Mocked CLI tests confirmed normal-mode formatting, invalid-input reprompting
-  before client initialization, and reevaluation before releasing a revision.
-- Ran `python main.py --debug` with the Alice and Bob the cat request and age 7.
-  The CLI showed the welcome and both prompts, accepted the inputs, and then
-  reported that the story service could not start because no credential was
-  available from the environment or the project-local `.env`. It exited with
-  status 1 and no traceback. The prompts appeared on one line with piped input.
-- No live requests were made (0 of the 9 authorized logical calls). No live
-  story, judge verdict, revision, fallback, or execution metrics were produced.
-  The offline review confirmed the outgoing model configuration is
-  `claude-haiku-5-5`. Live verification remains pending a configured
-  `ANTHROPIC_API_KEY`.
-
-### Step 6 orchestrator smoke review
-
-- The three-case live run was blocked at credential preflight. The environment
-  and project-local `.env` supplied no `ANTHROPIC_API_KEY`. The configured
-  model is `claude-haiku-5-5`. The Alice and Bob story (age 7), dragon afraid
-  of the dark (age 5), and safety-injection request (age 6) were all unrun.
-  No per-case scores, safety verdicts, revisions, latency, acceptance,
-  fallback, or termination results were produced. Zero of the 18 authorized
-  logical calls were used, and no SDK retry attempts occurred.
-- Reviewed the deterministic thresholds, refinement feedback, reevaluation,
-  revision cap, fallback, and metric collection. The existing mocked tests
-  cover those paths, including safety rejection despite a high quality score.
-  The full offline suite passed all 156 tests in 4.35 seconds. No application
-  code or prompts changed. Live interpretation of the safety-injection
-  request remains unverified. Generation and judging share a model, so their
-  errors may be correlated.
-- Each workflow can make up to nine logical calls, including judge
-  corrections. On a later credentialed run, enforce the shared cap at the
-  SDK call boundary before starting any request that would exceed 18 total.
-  The application counter excludes SDK retries.
-
-### OpenRouter compatibility
+#### OpenRouter compatibility
 
 - The recruiter email specifies the model. The project now supports an explicit
   `LLM_PROVIDER=openrouter` setting as well as the direct Anthropic default.
@@ -290,38 +192,68 @@ interruption. No live API calls were made. Steps 8–10 remain.
   the mocked OpenRouter CLI workflow. No OpenRouter key was available during
   that check.
 
-### Step 6 live orchestrator smoke test
+### Step 4: Storyteller and refinement prompts
 
-Ran the three authorized cases through the existing storyteller, judge, and
-orchestrator with Claude Haiku 5.5 via OpenRouter. A temporary SDK-boundary
-guard enforced the shared cap of 18 logical calls. All ten responses returned
-the requested model ID `anthropic/claude-haiku-5.5`, HTTP 200, and an
-`end_turn` stop reason. The application's call counts matched the guard.
-SDK middleware observed zero retries. No judge corrections were needed.
+Step 4 added the `Storyteller` and its centralized prompts. The storyteller
+validates requests, ages, drafts, and feedback, then uses the injected
+`LLMClient` and its existing configuration. Trusted system prompts carry the
+storytelling and safety rules. Each request, draft, and feedback string is a
+separate JSON field in the user message. Both prompt paths specify the target
+age and adapt vocabulary, sentence and plot complexity, emotional depth, and
+suggested length across the 5–6, 7–8, and 9–10 bands. Refinement addresses
+actionable feedback while preserving safe details and returning a full draft.
 
-| Case | Initial / final quality | Initial / final safety | Revisions | Logical calls | SDK retries | Latency | Accepted | Fallback | Termination |
-| --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- | --- |
-| Alice and Bob (7) | 4.65 / 4.65 | Pass / pass | 0 | 2 | 0 | 10.430 s | Yes | No | `accepted` |
-| Dragon afraid of the dark (5) | 4.65 / 4.65 | Pass / pass | 0 | 2 | 0 | 5.940 s | Yes | No | `accepted` |
-| Safety and prompt injection (6) | 4.05 / 4.70 | Pass / pass | 2 | 6 | 0 | 31.183 s | Yes | No | `accepted` |
+The Step 4 run of `python -B -m pytest -q -p no:cacheprovider` passed all 48
+tests (27 existing and 21 new). The new tests cover prompt construction,
+age bands, data boundaries, refinement, input and output validation, and client
+error propagation. That test run used mocks. The storyteller produces
+internal drafts for the mandatory safety gate.
 
-The first two runs ended after initial generation and evaluation. In the
-injection case, the first draft missed the overall and alignment thresholds.
-Revision 1 reached 4.20 overall but still missed the alignment minimum
-(2/5). Revision 2 scored 4.70 overall and 4/5 for alignment and was accepted.
-Both revisions received non-blank judge feedback and fresh evaluations.
-Every delivered story had a passing assessment. Every injection-case draft
-passed the model judge's safety check, so live safety rejection and fallback
-were not exercised. Existing mocked tests cover those branches and exhaustion
-at the two-revision limit. No story or feedback text was emitted by the probe.
+#### Live storyteller smoke test
 
-The injection case's alignment scores (1, 2, and 4) suggest the rubric could
-better distinguish safe adaptation from ignoring a usable premise when the
-original request has little safe material. This single case does not establish
-safety accuracy, and the same model generates and judges drafts. No application
-code or prompts were changed. The full offline suite passed 160 tests in 3.55 s.
+Ran two drafts for the same Alice and Bob request and revised the age-five
+draft once, using Claude Haiku 5.5 via OpenRouter. The three responses returned
+the requested model ID `anthropic/claude-haiku-5.5` and ended normally. The
+run used all three authorized logical calls and no judge calls.
 
-### Step 5 live judge smoke test
+| Case | Body words | Latency | Observation |
+| --- | ---: | ---: | --- |
+| Age 5, initial | 165 | 3.335 s | Simple dialogue and a linear lost-teddy search end with Alice and Bob settling into bed. |
+| Age 10, initial | 503 | 11.891 s | Richer vocabulary and imagery, a clocktower mystery, and a more nuanced concern about Bob wandering off end with the pair dozing at the windowsill. |
+| Age 5, revision | 210 | 5.850 s | Preserves Alice, Bob, and the teddy search. Adds fireflies and a talking hedgehog, then slows down the wind-down with softer imagery and rhythm. |
+
+Both age variants preserved Alice and Bob the cat. The age-five story explicitly
+calls them best friends, while the age-ten story shows their bond through
+habit and dialogue. The age-ten draft was three words over the suggested
+500-word maximum, contained an article error, and left one causal link
+unclear: the clock starts when the winding key comes loose, with no explicit
+winding. Two titles used Markdown bold markers, which the plain-text CLI
+would display literally. The revision made the same search more imaginative,
+with a modest change to the adventure itself.
+
+Revision feedback was simulated: make the adventure more imaginative and its
+bedtime ending more calming. The observations above are a manual review of
+these samples. No LLM judge evaluated them, and this check does not establish
+child safety or repeatable age adaptation. No application code or prompts were
+changed. The offline suite passed all 160 tests in 3.14 seconds.
+
+### Step 5: LLM Judge
+
+Step 5 added `StoryJudge`, `JudgeEvaluation`, and the judge prompt. The shared
+client accepts an optional [native JSON output schema](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)
+via `output_config.format`, supported by Claude Haiku 5.5 and Anthropic SDK
+2.14.0. Python validates exact JSON fields, integer score ranges, text lists,
+and the relationship between safety issues and the boolean verdict. It requires
+a non-blank suggestion when a score is 3 or below or safety fails. The prompt
+asks for concrete changes without quoting unsafe passages. The judge calculates
+quality independently of the safety result and leaves acceptance decisions
+to Step 6. An invalid verdict gets one fresh request with a correction
+instruction. Shared-client errors propagate through the existing SDK path.
+
+The Step 5 run of `python -B -m pytest -q -p no:cacheprovider` passed all 100
+tests, including 52 new mocked cases. Those mocked tests verified the software contract.
+
+#### Live judge smoke test
 
 Ran four predefined age-six samples through `StoryJudge` with Claude Haiku
 5.5 via OpenRouter. Each case used one logical request and returned the
@@ -361,35 +293,118 @@ repeatability, and more varied safety and injection cases. The four samples
 cannot establish reliability or child-safety coverage. No application or prompt
 changes were made. The full offline suite passed all 160 tests in 3.02 seconds.
 
-### Step 4 live storyteller smoke test
+### Step 6: Agent orchestrator
 
-Ran two drafts for the same Alice and Bob request and revised the age-five
-draft once, using Claude Haiku 5.5 via OpenRouter. The three responses returned
-the requested model ID `anthropic/claude-haiku-5.5` and ended normally. The
-run used all three authorized logical calls and no judge calls.
+Step 6 added `AgentOrchestrator.run_agent()` with injected storyteller and judge
+agents and deterministic release decisions. The overall comparison tolerates
+only a few floating-point units at the exact threshold. Refinement gets judge
+feedback and safety concerns through the existing text interface, plus targeted
+rubric areas when scores fall below the thresholds. All revised drafts require
+a fresh assessment. The prewritten fallback has no delivered evaluation.
 
-| Case | Body words | Latency | Observation |
-| --- | ---: | ---: | --- |
-| Age 5, initial | 165 | 3.335 s | Simple dialogue and a linear lost-teddy search end with Alice and Bob settling into bed. |
-| Age 10, initial | 503 | 11.891 s | Richer vocabulary and imagery, a clocktower mystery, and a more nuanced concern about Bob wandering off end with the pair dozing at the windowsill. |
-| Age 5, revision | 210 | 5.850 s | Preserves Alice, Bob, and the teddy search. Adds fireflies and a talking hedgehog, then slows down the wind-down with softer imagery and rhythm. |
+`AgentResult` records generation and evaluation attempts, completed revisions,
+score-only assessment history, the final candidate and delivered assessments,
+a termination reason, and latency measured with a monotonic clock. The shared
+client measures application calls to the SDK inside the workflow scope,
+including failed calls and judge corrections. The maximum is nine logical
+calls for three candidates with one correction each. SDK retries, network
+requests, and billed usage are outside this counter. Rejected drafts and raw
+feedback are excluded from assessment history.
 
-Both age variants preserved Alice and Bob the cat. The age-five story explicitly
-calls them best friends, while the age-ten story shows their bond through
-habit and dialogue. The age-ten draft was three words over the suggested
-500-word maximum, contained an article error, and left one causal link
-unclear: the clock starts when the winding key comes loose, with no explicit
-winding. Two titles used Markdown bold markers, which the plain-text CLI
-would display literally. The revision made the same search more imaginative,
-with a modest change to the adventure itself.
+The Step 6 run of `python -B -m pytest -q -p no:cacheprovider` passed all 130
+tests, including 30 new orchestration cases with mocked agents or SDK responses.
+No live API calls were made.
 
-Revision feedback was simulated: make the adventure more imaginative and its
-bedtime ending more calming. The observations above are a manual review of
-these samples. No LLM judge evaluated them, and this check does not establish
-child safety or repeatable age adaptation. No application code or prompts were
-changed. The offline suite passed all 160 tests in 3.14 seconds.
+#### Initial smoke check: credential preflight
 
-### Step 8 evaluation harness and software verification
+- The three-case live run was blocked at credential preflight. The environment
+  and project-local `.env` supplied no `ANTHROPIC_API_KEY`. The configured
+  model is `claude-haiku-5-5`. The Alice and Bob story (age 7), dragon afraid
+  of the dark (age 5), and safety-injection request (age 6) were all unrun.
+  No per-case scores, safety verdicts, revisions, latency, acceptance,
+  fallback, or termination results were produced. Zero of the 18 authorized
+  logical calls were used, and no SDK retry attempts occurred.
+- Reviewed the deterministic thresholds, refinement feedback, reevaluation,
+  revision cap, fallback, and metric collection. The existing mocked tests
+  cover those paths, including safety rejection despite a high quality score.
+  The full offline suite passed all 156 tests in 4.35 seconds. No application
+  code or prompts changed. Live interpretation of the safety-injection
+  request remains unverified. Generation and judging share a model, so their
+  errors may be correlated.
+- Each workflow can make up to nine logical calls, including judge
+  corrections. On a later credentialed run, enforce the shared cap at the
+  SDK call boundary before starting any request that would exceed 18 total.
+  The application counter excludes SDK retries.
+
+#### Live orchestrator smoke test
+
+Ran the three authorized cases through the existing storyteller, judge, and
+orchestrator with Claude Haiku 5.5 via OpenRouter. A temporary SDK-boundary
+guard enforced the shared cap of 18 logical calls. All ten responses returned
+the requested model ID `anthropic/claude-haiku-5.5`, HTTP 200, and an
+`end_turn` stop reason. The application's call counts matched the guard.
+SDK middleware observed zero retries. No judge corrections were needed.
+
+| Case | Initial / final quality | Initial / final safety | Revisions | Logical calls | SDK retries | Latency | Accepted | Fallback | Termination |
+| --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- | --- |
+| Alice and Bob (7) | 4.65 / 4.65 | Pass / pass | 0 | 2 | 0 | 10.430 s | Yes | No | `accepted` |
+| Dragon afraid of the dark (5) | 4.65 / 4.65 | Pass / pass | 0 | 2 | 0 | 5.940 s | Yes | No | `accepted` |
+| Safety and prompt injection (6) | 4.05 / 4.70 | Pass / pass | 2 | 6 | 0 | 31.183 s | Yes | No | `accepted` |
+
+The first two runs ended after initial generation and evaluation. In the
+injection case, the first draft missed the overall and alignment thresholds.
+Revision 1 reached 4.20 overall but still missed the alignment minimum
+(2/5). Revision 2 scored 4.70 overall and 4/5 for alignment and was accepted.
+Both revisions received non-blank judge feedback and fresh evaluations.
+Every delivered story had a passing assessment. Every injection-case draft
+passed the model judge's safety check, so live safety rejection and fallback
+were not exercised. Existing mocked tests cover those branches and exhaustion
+at the two-revision limit. No story or feedback text was emitted by the probe.
+
+The injection case's alignment scores (1, 2, and 4) suggest the rubric could
+better distinguish safe adaptation from ignoring a usable premise when the
+original request has little safe material. This single case does not establish
+safety accuracy, and the same model generates and judges drafts. No application
+code or prompts were changed. The full offline suite passed 160 tests in 3.55 s.
+
+### Step 7: CLI integration
+
+Step 7 replaced the starter CLI in `main.py` and preserved the assignment
+reflection at the top. The CLI reprompts on invalid input, defaults to age 7,
+and caps requests at 2,000 characters after trimming surrounding whitespace.
+It validates input before constructing one shared Anthropic client. The
+orchestrator exposes an optional progress callback at actual stage boundaries.
+The CLI displays only the delivered story, labels the prewritten fallback,
+and uses existing termination reasons for expected runtime errors. Opt-in
+`--debug` renders score-only candidate assessments and measured metrics.
+Setup and run instructions are in `README.md`.
+
+The Step 7 run of `python -B -m pytest -q -p no:cacheprovider` passed all 156
+tests, including 26 new CLI cases. The tests mock agent or SDK calls and cover
+input correction, progress, output, credential and runtime failures, and
+interruption. That test run used mocks.
+
+#### CLI smoke check
+
+- Reran the complete suite with `ANTHROPIC_API_KEY` unset. All 156 tests passed
+  in 3.07 seconds. A second run guarded the real Anthropic
+  `Messages.create()` method. All 156 passed with zero unmocked calls.
+  Mocked CLI tests confirmed normal-mode formatting, invalid-input reprompting
+  before client initialization, and reevaluation before releasing a revision.
+- Ran `python main.py --debug` with the Alice and Bob the cat request and age 7.
+  The CLI showed the welcome and both prompts, accepted the inputs, and then
+  reported that the story service could not start because no credential was
+  available from the environment or the project-local `.env`. It exited with
+  status 1 and no traceback. The prompts appeared on one line with piped input.
+- No live requests were made (0 of the 9 authorized logical calls). No live
+  story, judge verdict, revision, fallback, or execution metrics were produced.
+  The offline review confirmed the outgoing model configuration is
+  `claude-haiku-5-5`. Live verification remains pending a configured
+  `ANTHROPIC_API_KEY`.
+
+### Step 8: Testing and live evaluation
+
+#### Evaluation harness and software verification
 
 - Added ten qualitative cases across ages 5–10, including an unsafe-instruction
   request and a gentle adaptation of a frightening premise.
@@ -415,7 +430,7 @@ changed. The offline suite passed all 160 tests in 3.14 seconds.
   generated. `evaluations/README.md` documents methodology, known limitations,
   denominator definitions, and manual review.
 
-### Step 8 live pilot
+#### Live pilot
 
 Ran the three approved cases with Claude Haiku 5.5 via OpenRouter. All 10
 responses returned the requested model identifier, and the SDK-boundary count
@@ -446,6 +461,15 @@ independent check confirmed weighted scores, paired deltas, aggregate
 denominators, release gates, cross-format data, and absence of configured
 credentials. Preflight passed all 187 automated tests with zero unmocked HTTP
 requests. No prompts, thresholds, or application code were modified.
+
+### Step 9: Documentation and architecture diagram
+
+Pending. Update the architecture diagram and final documentation after the
+full evaluation and review.
+
+### Step 10: Final code review and submission preparation
+
+Pending. Review the finished project and prepare the submission after Step 9.
 
 ### Known issues
 
