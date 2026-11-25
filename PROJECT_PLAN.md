@@ -139,7 +139,7 @@ and setup small enough for the assignment time budget.
 - [x] Step 5: LLM Judge.
 - [x] Step 6: Agent orchestrator.
 - [x] Step 7: CLI integration.
-- [ ] Step 8: Testing and live evaluation. Offline harness and live pilot complete; full dataset pending review and approval.
+- [x] Step 8: Testing and live evaluation. All ten cases evaluated.
 - [ ] Step 9: Documentation and architecture diagram.
 - [ ] Step 10: Final code review and submission preparation.
 
@@ -462,6 +462,41 @@ denominators, release gates, cross-format data, and absence of configured
 credentials. Preflight passed all 187 automated tests with zero unmocked HTTP
 requests. No prompts, thresholds, or application code were modified.
 
+#### Consolidated live evaluation
+
+Reused all three pilot cases after checking that the evaluator, application
+configuration, prompts, and dataset matched the pilot. Ran the seven remaining
+cases on Claude Haiku 5.5 through OpenRouter. The full dataset used 32 of 90
+logical calls (10 reused and 22 new). All 22 new responses returned the
+requested model ID. No judge corrections were needed. SDK retries and tokens
+were not measured.
+
+| Metric | Measured result |
+| --- | --- |
+| Cases evaluated | 10/10 |
+| First-pass and final generated acceptance | 7/10 each (70%) |
+| Mean initial / final candidate quality | 4.40 / 4.43 out of 5 (n=10 each) |
+| Mean paired revised quality change | +0.10 points (n=3) |
+| Revision success | 0/3 |
+| Initial / final judge-reported safety passes | 10/10 at each stage |
+| Fallbacks | 3/10 (30%) |
+| Mean revisions, calls, latency | 0.60; 3.20; 15.874 s (n=10 each) |
+| Evaluation errors | 0/10 |
+
+Bedtime suitability had the highest final criterion mean (4.90), and
+creativity had the lowest (4.00). Request alignment was the primary friction
+for the monster and injection prompts. Each gained 0.15 points and still
+fell back. Rivals-to-friends remained at 4.15 and also fell back. The safety
+verdicts are judge observations, and the seven newly measured drafts were
+not independently reviewed. This small sample cannot establish safety
+coverage or a general benefit from refinement.
+
+Saved [the complete report](evaluations/REPORT.md), JSON, and CSV. Independent
+checks reproduced weighted scores, paired changes, aggregate denominators,
+and release decisions and confirmed exact pilot reuse and absence of
+configured credentials. The full offline suite passed 187 tests in 4.35
+seconds. A guarded preflight run detected zero unmocked HTTP requests.
+
 ### Step 9: Documentation and architecture diagram
 
 Pending. Update the architecture diagram and final documentation after the
@@ -484,6 +519,7 @@ Pending. Review the finished project and prepare the submission after Step 9.
 
 ### Next implementation step
 
-Review the pilot with the user before any full-dataset run. The complete
-dataset and Step 9 remain deferred. Any follow-up run requires a separately
-approved logical call budget.
+Review the consolidated evaluation and decide whether to investigate the
+safe-adaptation alignment and refinement issues. Step 9 remains deferred
+until requested. Any follow-up live run requires a separately approved
+logical call budget.
