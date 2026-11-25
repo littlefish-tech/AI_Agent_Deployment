@@ -53,12 +53,34 @@ You decide
 
 ## Running the bedtime story agent
 
-The recruiter updated the model requirement to Claude Haiku 5.5. The
-application uses Anthropic's Python SDK for both supported routes.
+### Recruiter update
 
-From the project directory, activate your Python virtual environment and install
-the runtime requirements. Set the provider and matching key in your
-environment or copy `.env.example` to `.env` and configure it locally.
+> For this assessment, use Anthropic’s Claude Haiku 5.5 instead of GPT-3.5 Turbo. This requirement supersedes any references to GPT-3.5 Turbo in the assignment materials.
+
+### Implementation overview
+
+The Python CLI asks for a story idea and a target age from 5 to 10. Claude
+Haiku 5.5 drafts the story and evaluates it in a separate judge call.
+Python applies the child-safety and quality gates, sends judge feedback for
+up to two revisions, and returns a prewritten bedtime story if no draft
+qualifies. Both supported routes use the Anthropic Python SDK.
+
+[Solution documentation](docs/SOLUTION.md) · [Architecture diagram](docs/architecture.md) · [Measured evaluation results](evaluations/REPORT.md)
+
+### Quick start
+
+From the project directory, create and activate an environment using Python
+3.14, the version used for verification.
+
+```sh
+python3.14 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+Set the matching key in your environment, or copy `.env.example` to a new
+`.env` if you do not already have one. Edit `.env` locally. Keep keys out of
+the tracked template.
 
 | Route | Configuration | Model ID |
 | --- | --- | --- |
@@ -66,14 +88,12 @@ environment or copy `.env.example` to `.env` and configure it locally.
 | OpenRouter | `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` | `anthropic/claude-haiku-5.5` |
 
 ```sh
-python -m pip install -r requirements.txt
 python main.py
 ```
 
 The CLI asks for a story idea of up to 2,000 characters and an age from
-5 to 10. Press Enter at the age
-prompt to use age 7. The CLI labels the prewritten fallback if a personalized
-draft cannot be approved.
+5 to 10. Press Enter at the age prompt to use age 7. The CLI labels the
+prewritten fallback if a personalized draft cannot be approved.
 
 Run `python main.py --debug` to see candidate scores, safety status, and
 execution metrics. To run the offline test suite, install the development

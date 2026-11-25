@@ -53,6 +53,8 @@ evaluation again. The storyteller and judge share one Anthropic client.
 │   └── README.md
 ├── tests/
 └── docs/
+    ├── SOLUTION.md
+    ├── architecture.md
     └── system-flow.svg
 ```
 
@@ -140,7 +142,7 @@ and setup small enough for the assignment time budget.
 - [x] Step 6: Agent orchestrator.
 - [x] Step 7: CLI integration.
 - [x] Step 8: Testing and live evaluation. All ten cases evaluated.
-- [ ] Step 9: Documentation and architecture diagram.
+- [x] Step 9: Documentation and architecture diagram.
 - [ ] Step 10: Final code review and submission preparation.
 
 ### Step 1: Requirements analysis and architecture planning
@@ -499,8 +501,25 @@ seconds. A guarded preflight run detected zero unmocked HTTP requests.
 
 ### Step 9: Documentation and architecture diagram
 
-Pending. Update the architecture diagram and final documentation after the
-full evaluation and review.
+Added [the solution walkthrough](docs/SOLUTION.md), a Mermaid
+[architecture diagram](docs/architecture.md), and its
+[rendered SVG](docs/system-flow.svg). The walkthrough documents setup,
+prompt construction, actual rubric weights, release thresholds, safety
+limitations, all aggregate evaluation metrics, and a measured first-pass
+Alice and Bob execution. The original README instructions stay intact,
+followed by the recruiter update, overview, quick start, and report links.
+Completed the two-hour reflection in `main.py` without changing runtime
+logic.
+
+Mermaid CLI 11.12.0 rendered the SVG using a temporary tool cache, with no
+added project dependency. The SVG parsed as XML, and a PNG preview was
+checked for label and path readability. Verification checked 17 local
+links, the exact original README section, the reflection-only Python
+edit, rubric thresholds, saved evaluation figures, and absence of
+configured credentials. Creating and activating a temporary Python 3.14
+environment, dependency dry runs, CLI help, and the evaluator's offline
+preview succeeded. All 187 tests passed in 4.17 seconds, with zero
+unmocked HTTP requests. No new live evaluation was run.
 
 ### Step 10: Final code review and submission preparation
 
@@ -508,9 +527,8 @@ Pending. Review the finished project and prepare the submission after Step 9.
 
 ### Known issues
 
-- The tracked root `system-flow.svg` is deleted in the working tree. The
-  historical diagram shows one revision and needs to be reconciled with the
-  two-revision workflow during Step 9.
+- The old root `system-flow.svg` is deleted in the working tree. Current
+  documentation links to the replacement in `docs/`.
 - Live orchestrator access to the required model was verified through
   OpenRouter. Direct Anthropic access and a live CLI run remain unverified.
 - The CLI handles one request per run. An interactive repeat loop and
@@ -519,7 +537,7 @@ Pending. Review the finished project and prepare the submission after Step 9.
 
 ### Next implementation step
 
-Review the consolidated evaluation and decide whether to investigate the
-safe-adaptation alignment and refinement issues. Step 9 remains deferred
-until requested. Any follow-up live run requires a separately approved
-logical call budget.
+Step 10 is the final code review and submission preparation. Review the
+remaining working-tree changes, run final checks, and package the
+submission when requested. Any follow-up live run requires a separately
+approved logical call budget.

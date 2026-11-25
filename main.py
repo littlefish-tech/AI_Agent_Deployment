@@ -1,6 +1,13 @@
 """
 Before submitting the assignment, describe here in a few sentences what you would have built next if you spent 2 more hours on this project:
 
+I would start by adding more borderline and adversarial cases, then compare repeated
+judge scores against a small set of manually reviewed stories, especially for safe
+adaptations. I would use those cases to prototype an independent safety check and
+measure where it disagrees with the current judge. I would also record per-stage
+latency, token usage, and estimated cost to see which judge and revision calls
+provide enough benefit to justify their overhead.
+
 """
 
 import argparse
