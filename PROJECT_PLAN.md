@@ -126,7 +126,7 @@ and setup small enough for the assignment time budget.
 - [x] Step 1: Requirements analysis and architecture planning.
 - [x] Step 2: Project initialization and AGENTS.md.
 - [x] Step 3: Anthropic API client and smoke test.
-- [ ] Step 4: Storyteller and refinement prompts.
+- [x] Step 4: Storyteller and refinement prompts.
 - [ ] Step 5: LLM Judge.
 - [ ] Step 6: Agent orchestrator.
 - [ ] Step 7: CLI integration.
@@ -159,7 +159,23 @@ process environment. An injected SDK client permits offline tests without a key.
 
 The Step 3 run of `python -B -m pytest -q -p no:cacheprovider` passed all 27
 tests, including the mocked smoke test. `python -m pip check` found no broken
-requirements. No live API calls or evaluations were made. Steps 4–10 remain.
+requirements.
+
+Step 4 added the `Storyteller` and its centralized prompts. The storyteller
+validates requests, ages, drafts, and feedback, then uses the injected
+`LLMClient` and its existing configuration. Trusted system prompts carry the
+storytelling and safety rules. Each request, draft, and feedback string is a
+separate JSON field in the user message. Both prompt paths specify the target
+age and adapt vocabulary, sentence and plot complexity, emotional depth, and
+suggested length across the 5–6, 7–8, and 9–10 bands. Refinement addresses
+actionable feedback while preserving safe details and returning a full draft.
+
+The Step 4 run of `python -B -m pytest -q -p no:cacheprovider` passed all 48
+tests (27 existing and 21 new). The new tests cover prompt construction,
+age bands, data boundaries, refinement, input and output validation, and client
+error propagation. No live API calls were made. Prompt adherence, actual story
+quality, and safety against adversarial input remain unverified. The storyteller
+produces internal drafts for the future mandatory safety gate. Steps 5–10 remain.
 
 ### Known issues
 
@@ -172,7 +188,6 @@ requirements. No live API calls or evaluations were made. Steps 4–10 remain.
 
 ### Next implementation step
 
-Complete Step 4 by adding the story generation and refinement templates in
-`prompts.py` and implementing `storyteller.py` with the shared
-`LLMClient.generate_text()` interface. Test initial drafting and feedback-based
-revision offline.
+Complete Step 5 by adding the judge prompt and implementing `judge.py` with
+the shared `LLMClient.generate_text()` interface. Validate the returned safety
+verdict, rubric scores, and feedback. Test valid and malformed verdicts offline.
