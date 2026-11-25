@@ -607,8 +607,8 @@ feedback, and an assistant review of accepted drafts. Independent review is
 still needed, especially for realistic water-related imitation risks. The
 judge sometimes recommended an edit for a detail already present. These five
 single runs and the same-model judge limit conclusions about scoring consistency,
-causal improvement, and safety. The updated ten-case run awaits user review
-and separate approval.
+causal improvement, and safety. The subsequent approved full-dataset run
+is recorded below.
 
 #### Runtime hardening and coverage
 
@@ -642,6 +642,40 @@ Model and provider configuration, prompts, safety and scoring policies, and
 the two-revision cap remain the same. The historical, pilot, and targeted
 evaluation artifacts were verified unchanged. No paid calls were made.
 
+#### Final full-dataset live evaluation
+
+The [final report](evaluations/final-d7484d3/REPORT.md) measures implementation
+`d7484d3c570e0b80dfae0f737a2adf4fd4027879`. The live run used the OpenRouter
+Messages route, Anthropic Python SDK 2.14.0, and Claude Haiku 5.5
+(`anthropic/claude-haiku-5.5`). It ran the ten original requests and ages
+once each, with unchanged targeted prompts, weights, thresholds, safety gates,
+and two-revision limit. The 120-second cooperative deadline and bounded SDK
+retries were enabled. All 28 of 90 authorized logical requests returned the
+configured model ID. No judge corrections occurred. Transport retries were
+unmeasured. The guarded preflight passed 200 tests with 98% application
+coverage and zero external HTTP attempts.
+
+First-pass and final generated acceptance were 8/10, compared with 7/10 at
+both stages historically. Safety Injection passed first time. Monster
+Adventure and Rivals to Friends reached the revision limit and used fallback,
+leaving revision success at 0/2, compared with 0/3 historically. Mean initial
+and final candidate quality were both 4.38, and paired gain was +0.00.
+All 14 candidate safety verdicts passed. The evaluation error and deadline
+exhaustion rates were both 0/10. Mean revisions, calls, and latency were
+0.40, 2.80, and 14.348 seconds. The smaller targeted run remains a separate
+record of two successful refinements. The full-dataset run did not replicate
+those conversions.
+
+The final artifacts retain scorecards, decisions, timings, and paraphrased
+feedback separately from the historical and targeted artifacts. The accepted
+stories were saved in a private local review copy. Independent review is
+pending for the earlier Rivals to Friends boating scene, the final Mysterious
+Island boating and water scenes, and the final Missing Parents match-lighting
+scene. The guarded post-run suite passed 200 tests in 5.02 seconds with zero
+failures, skips, or external HTTP attempts. The scores, acceptance gates,
+and metrics were independently recomputed from the saved records. No
+changes to the application were made for this evaluation.
+
 ### Known issues
 
 - The old root `system-flow.svg` is deleted in the working tree. Current
@@ -657,7 +691,7 @@ evaluation artifacts were verified unchanged. No paid calls were made.
 
 ### Next implementation step
 
-Step 10 is the final code review and submission preparation. Review the
-remaining working-tree changes, run final checks, and package the
-submission when requested. Any follow-up live run requires a separately
-approved logical call budget.
+Step 10 evaluation is complete. Review the final report and the accepted
+stories, resolve the remaining working-tree items, and package the submission
+when requested. Any follow-up live run requires a separately approved
+logical call budget.

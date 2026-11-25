@@ -65,7 +65,15 @@ Python applies the child-safety and quality gates, sends judge feedback for
 up to two revisions, and returns a prewritten bedtime story if no draft
 qualifies. Both supported routes use the Anthropic Python SDK.
 
-[Solution documentation](docs/SOLUTION.md) · [Architecture diagram](docs/architecture.md) · [Measured evaluation results](evaluations/REPORT.md)
+[Solution documentation](docs/SOLUTION.md) · [Architecture diagram](docs/architecture.md) · [Final evaluation](evaluations/final-d7484d3/REPORT.md) · [Historical baseline](evaluations/REPORT.md)
+
+The final evaluation ran all ten original cases fresh at implementation
+`d7484d3c570e0b80dfae0f737a2adf4fd4027879` with Claude Haiku 5.5
+(`anthropic/claude-haiku-5.5`) through OpenRouter. Eight passed on the first
+draft and two used the fallback after two revisions each. The run measured
+zero successful refinements, +0.00 mean paired gain, and zero evaluation or
+deadline errors across 28 logical calls. All 14 drafts passed the automated
+safety gate. Independent review of imitation risks is pending.
 
 ### Quick start
 

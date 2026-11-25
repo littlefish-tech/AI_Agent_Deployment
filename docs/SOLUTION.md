@@ -235,12 +235,45 @@ The offline tests cover request validation, prompt construction, malformed
 judge responses, model errors and bounded SDK retries, acceptance and safety
 gates, reevaluation, fallback, CLI output, and evaluation budgets and metrics.
 Tests use injected mocks or a mocked HTTP transport for Anthropic calls.
-No coverage percentage was measured.
+The guarded offline suite passed 200 tests with zero external HTTP attempts
+and 98% application statement and branch coverage.
 
 The [evaluation guide](../evaluations/README.md) documents the ten-case
 dataset, live options, and a manual review checklist. `python evaluate.py`
 previews cases offline. Recorded live results use Claude Haiku 5.5 via
-OpenRouter. The consolidated run reused three valid pilot cases and added
+OpenRouter.
+
+### Final full-dataset run
+
+The [final report](../evaluations/final-d7484d3/REPORT.md) measures
+`d7484d3c570e0b80dfae0f737a2adf4fd4027879` using
+`anthropic/claude-haiku-5.5` on the OpenRouter Messages route. All ten cases
+were rerun once with their original requests and ages, the targeted judge and
+refinement prompts, unchanged safety and quality gates, and the 120-second
+workflow deadline. All 28 logical responses reported the requested model.
+No correction, budget exhaustion, or deadline exhaustion occurred. SDK
+transport retries were unmeasured.
+
+First-pass and final generated acceptance were both 8/10. Safety Injection
+accounted for the extra first-pass acceptance relative to the historical run.
+Monster Adventure and Rivals to Friends both fell back after two revisions.
+Mean initial and final candidate quality were both 4.38. The mean paired gain
+was +0.00 for the two revised cases. Initial and final judge-reported safety
+each passed 10/10. All 14 distinct candidate assessments passed, including
+the two intermediate drafts. There were no evaluation errors. Mean revisions,
+logical calls, and latency were 0.40, 2.80, and 14.348 seconds per started
+case. The intermediate five-case targeted run observed two successful
+refinements. That outcome was unreplicated on these two cases.
+
+The assistant flagged water and boating scenes in Mysterious Island and a
+child lighting a match in Missing Parents for independent review. The
+previous boating concern from the targeted Rivals to Friends draft remains
+open. Same-model judging, stochastic generation, and single observations
+limit claims about improvement and safety.
+
+### Historical baseline
+
+The historical consolidated run reused three valid pilot cases and added
 seven new cases.
 
 These figures are a historical baseline from before the judge and
