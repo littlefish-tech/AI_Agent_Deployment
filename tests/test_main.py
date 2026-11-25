@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -134,6 +135,21 @@ def test_debug_displays_existing_metrics(
     ):
         assert expected in output
     assert TEST_CREDENTIAL not in output
+
+
+def test_terminal_title_formatting_does_not_modify_story_body(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], sdk: Mock, agent: Mock,
+) -> None:
+    feed_input(monkeypatch, REQUEST, "")
+    agent.run_agent.return_value = replace(
+        agent.run_agent.return_value, story="**The Sleepy Fox**\n\nThe fox dreamed of **stars**."
+    )
+
+    assert main.main([]) == 0
+
+    output = capsys.readouterr().out
+    assert "\nThe Sleepy Fox\n\nThe fox dreamed of **stars**." in output
+    assert "**The Sleepy Fox**" not in output
 
 
 @pytest.mark.parametrize("error", [EOFError, KeyboardInterrupt])

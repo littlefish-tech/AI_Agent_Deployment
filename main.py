@@ -68,6 +68,14 @@ def _report_progress(event: ProgressEvent) -> None:
     print(_PROGRESS_MESSAGES[event], flush=True)
 
 
+def _print_story(story: str) -> None:
+    """Remove Markdown bold markers from the title for plain-text terminals."""
+    title, separator, body = story.partition("\n")
+    if len(title) > 4 and title.startswith("**") and title.endswith("**"):
+        title = title[2:-2]
+    print(f"\n{title}{separator}{body}")
+
+
 def _print_assessment(label: str, assessment: CandidateAssessment | None) -> None:
     if assessment is None:
         print(f"{label}: evaluation unavailable")
@@ -132,7 +140,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     else:
         print("Your bedtime story is ready!")
-    print(f"\n{result.story}")
+    _print_story(result.story)
     if args.debug:
         _print_debug(result, client.model_id)
     return 0

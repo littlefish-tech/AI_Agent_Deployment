@@ -37,26 +37,33 @@ class ModelCallCounter:
     """Count SDK calls initiated by the application within one scope."""
 
     count: int = 0
+    limit: int | None = None
 
 
-_active_call_counter: ContextVar[ModelCallCounter | None] = ContextVar(
-    "active_model_call_counter", default=None
+_active_call_counters: ContextVar[tuple[ModelCallCounter, ...]] = ContextVar(
+    "active_model_call_counters", default=()
 )
 
 
 @contextmanager
-def track_model_calls() -> Iterator[ModelCallCounter]:
+def track_model_calls(*, limit: int | None = None) -> Iterator[ModelCallCounter]:
     """Measure logical calls, including failed requests and judge corrections."""
-    counter = ModelCallCounter()
-    token = _active_call_counter.set(counter)
+    if limit is not None and (type(limit) is not int or limit < 0):
+        raise ValueError("A logical call limit must be a nonnegative integer.")
+    counter = ModelCallCounter(limit=limit)
+    token = _active_call_counters.set((*_active_call_counters.get(), counter))
     try:
         yield counter
     finally:
-        _active_call_counter.reset(token)
+        _active_call_counters.reset(token)
 
 
 class LLMClientError(RuntimeError):
     """A client failure with a message safe to display."""
+
+
+class ModelCallBudgetExceeded(RuntimeError):
+    """The logical call limit was reached before a request was sent."""
 
 
 class LLMClient:
@@ -116,8 +123,10 @@ class LLMClient:
         if type(max_output_tokens) is not int or max_output_tokens < 1:
             raise ValueError("max_output_tokens must be a positive integer.")
 
-        counter = _active_call_counter.get()
-        if counter is not None:
+        counters = _active_call_counters.get()
+        if any(counter.limit is not None and counter.count >= counter.limit for counter in counters):
+            raise ModelCallBudgetExceeded("The logical model call budget was exhausted.")
+        for counter in counters:
             counter.count += 1
         try:
             response = self._client.messages.create(

@@ -83,3 +83,7 @@ requirements and use pytest.
 python -m pip install -r requirements-dev.txt
 python -m pytest -q
 ```
+
+Run `python evaluate.py` to preview the evaluation cases offline. See the
+[evaluation guide](evaluations/README.md) for live-run options, metric
+definitions, and the manual review checklist.

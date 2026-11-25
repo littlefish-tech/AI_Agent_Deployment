@@ -48,6 +48,9 @@ evaluation again. The storyteller and judge share one Anthropic client.
 ├── validation.py
 ├── main.py
 ├── evaluate.py
+├── evaluations/
+│   ├── cases.json
+│   └── README.md
 ├── tests/
 └── docs/
     └── system-flow.svg
@@ -136,7 +139,7 @@ and setup small enough for the assignment time budget.
 - [x] Step 5: LLM Judge.
 - [x] Step 6: Agent orchestrator.
 - [x] Step 7: CLI integration.
-- [ ] Step 8: Testing and live evaluation.
+- [ ] Step 8: Testing and live evaluation. Offline harness and dataset complete; live dataset run pending approval.
 - [ ] Step 9: Documentation and architecture diagram.
 - [ ] Step 10: Final code review and submission preparation.
 
@@ -386,6 +389,32 @@ these samples. No LLM judge evaluated them, and this check does not establish
 child safety or repeatable age adaptation. No application code or prompts were
 changed. The offline suite passed all 160 tests in 3.14 seconds.
 
+### Step 8 evaluation harness and software verification
+
+- Added ten qualitative cases across ages 5–10, including an unsafe-instruction
+  request and a gentle adaptation of a frightening premise.
+- Added `evaluate.py` with offline preview, subset selection, a shared logical
+  call budget, and JSON, CSV, and Markdown reports. The budget is checked at
+  the SDK boundary and includes failed invocations and judge corrections.
+  SDK retries and tokens are outside reported usage. When the budget interrupts
+  a case, the orchestrator retains completed assessments and uses the fallback.
+  Remaining cases are unrun.
+- The reports separate initial and final candidate scores from the delivered
+  assessment. Revised cases with both scores contribute a paired point change,
+  including unsuccessful revisions. No scores are assigned to fallback stories,
+  and missing assessments are excluded from score and safety denominators.
+  Safe error categories and score metadata replace raw provider text and stories.
+- The test audit found that bounded SDK retry behavior was not exercised at
+  transport level. A mocked transport now verifies two retries after a rate
+  limit and one logical call in the counters. Also fixed literal Markdown
+  bold markers appearing around CLI titles, as observed in the live storyteller
+  test. The new CLI test verifies the title cleanup preserves the story body.
+- The full offline suite passed 187 tests in 3.44 seconds. A separate run passed
+  all 187 with zero unmocked HTTP transport calls. `pytest-cov` was unavailable.
+  No live dataset run was performed, so no measured dataset reports were
+  generated. `evaluations/README.md` documents methodology, known limitations,
+  denominator definitions, and manual review.
+
 ### Known issues
 
 - The tracked root `system-flow.svg` is deleted in the working tree. The
@@ -399,6 +428,6 @@ changed. The offline suite passed all 160 tests in 3.14 seconds.
 
 ### Next implementation step
 
-Complete Step 8 by creating a representative evaluation dataset and an
-evaluation script that exercises the existing orchestrator. Test the harness
-offline and run paid live evaluation only after explicit approval.
+Complete Step 8 by running the evaluation dataset after explicit approval of
+the live call budget. Review the measured reports and assess safe adaptations
+and regressions with the manual checklist. Step 9 remains deferred.

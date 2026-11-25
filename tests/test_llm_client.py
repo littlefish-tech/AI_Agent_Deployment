@@ -9,7 +9,7 @@ import pytest
 from anthropic.types import TextBlock, ThinkingBlock
 
 import config
-from llm_client import LLMClient, LLMClientError
+from llm_client import LLMClient, LLMClientError, track_model_calls
 
 
 @pytest.fixture(autouse=True)
@@ -171,6 +171,30 @@ def test_rejects_unknown_provider(monkeypatch: pytest.MonkeyPatch) -> None:
         with pytest.raises(LLMClientError, match="Set LLM_PROVIDER"):
             LLMClient()
     constructor.assert_not_called()
+
+
+def test_sdk_retries_rate_limit_only_twice_and_counts_one_logical_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "mock-retry-credential")
+    attempts = Mock(
+        side_effect=lambda request: httpx2.Response(
+            429,
+            headers={"retry-after-ms": "1"},
+            json={"type": "error", "error": {"type": "rate_limit_error", "message": "Rate limited"}},
+        )
+    )
+    with httpx2.Client(transport=httpx2.MockTransport(attempts)) as transport:
+        with patch(
+            "llm_client.Anthropic",
+            side_effect=lambda **kwargs: anthropic.Anthropic(http_client=transport, **kwargs),
+        ):
+            client = LLMClient()
+            with track_model_calls(limit=1) as budget, track_model_calls() as inner:
+                with pytest.raises(LLMClientError, match="rate limit"):
+                    client.generate_text(system_prompt="System", user_message="User")
+    assert budget.count == inner.count == 1
+    assert attempts.call_count == 3
 
 
 def test_missing_credentials(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

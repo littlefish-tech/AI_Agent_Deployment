@@ -15,7 +15,7 @@ from config import (
     MIN_OVERALL_SCORE,
 )
 from judge import JudgeEvaluation, JudgeEvaluationError, StoryJudge
-from llm_client import LLMClientError, track_model_calls
+from llm_client import LLMClientError, ModelCallBudgetExceeded, track_model_calls
 from storyteller import Storyteller
 from validation import validate_story_request, validate_target_age
 
@@ -52,6 +52,7 @@ class TerminationReason(StrEnum):
     REFINEMENT_ERROR = "refinement_error"
     INVALID_EVALUATION = "invalid_evaluation"
     EVALUATION_ERROR = "evaluation_error"
+    CALL_BUDGET_EXHAUSTED = "call_budget_exhausted"
 
 
 @dataclass(frozen=True)
@@ -167,6 +168,10 @@ class AgentOrchestrator:
                         candidate = self._storyteller.generate_story(request, age)
                     else:
                         candidate = self._storyteller.revise_story(request, age, candidate, feedback)
+                except ModelCallBudgetExceeded:
+                    generation_attempts -= 1
+                    reason = TerminationReason.CALL_BUDGET_EXHAUSTED
+                    break
                 except LLMClientError:
                     reason = (
                         TerminationReason.REFINEMENT_ERROR
@@ -184,6 +189,9 @@ class AgentOrchestrator:
                     )
                 try:
                     evaluation = self._judge.evaluate_story(request, age, candidate)
+                except ModelCallBudgetExceeded:
+                    reason = TerminationReason.CALL_BUDGET_EXHAUSTED
+                    break
                 except JudgeEvaluationError:
                     reason = TerminationReason.INVALID_EVALUATION
                     break
