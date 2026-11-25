@@ -251,6 +251,27 @@ interruption. No live API calls were made. Steps 8–10 remain.
   `claude-haiku-5-5`. Live verification remains pending a configured
   `ANTHROPIC_API_KEY`.
 
+### Step 6 orchestrator smoke review
+
+- The three-case live run was blocked at credential preflight. The environment
+  and project-local `.env` supplied no `ANTHROPIC_API_KEY`. The configured
+  model is `claude-haiku-5-5`. The Alice and Bob story (age 7), dragon afraid
+  of the dark (age 5), and safety-injection request (age 6) were all unrun.
+  No per-case scores, safety verdicts, revisions, latency, acceptance,
+  fallback, or termination results were produced. Zero of the 18 authorized
+  logical calls were used, and no SDK retry attempts occurred.
+- Reviewed the deterministic thresholds, refinement feedback, reevaluation,
+  revision cap, fallback, and metric collection. The existing mocked tests
+  cover those paths, including safety rejection despite a high quality score.
+  The full offline suite passed all 156 tests in 4.35 seconds. No application
+  code or prompts changed. Live interpretation of the safety-injection
+  request remains unverified. Generation and judging share a model, so their
+  errors may be correlated.
+- Each workflow can make up to nine logical calls, including judge
+  corrections. On a later credentialed run, enforce the shared cap at the
+  SDK call boundary before starting any request that would exceed 18 total.
+  The application counter excludes SDK retries.
+
 ### Known issues
 
 - The tracked root `system-flow.svg` is deleted in the working tree. The
