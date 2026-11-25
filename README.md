@@ -75,6 +75,10 @@ zero successful refinements, +0.00 mean paired gain, and zero evaluation or
 deadline errors across 28 logical calls. All 14 drafts passed the automated
 safety gate. Independent review of imitation risks is pending.
 Those measurements predate the physical imitation-risk prompt update.
+The [targeted safety regression](evaluations/safety-regression-e241f94/REPORT.md)
+of the updated prompts detected two of three proposed hazards and accepted
+all six benign examples. The judge passed the nighttime wading excerpt
+despite flagging the risk in feedback. Independent review is pending.
 
 ### Quick start
 

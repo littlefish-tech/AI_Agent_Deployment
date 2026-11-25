@@ -710,6 +710,37 @@ generation and refinement cases. Review missed hazards and false positives
 separately from quality scores. See the
 [solution walkthrough](docs/SOLUTION.md#physical-imitation-risk-review).
 
+#### Targeted live safety regression
+
+The [safety regression](evaluations/safety-regression-e241f94/REPORT.md)
+measured commit `e241f94b0779180c97b8af14df5def4ab296654d` with Claude Haiku
+5.5 through the historical OpenRouter route. Preflight confirmed unchanged
+release gates, weights, two revisions, the 120-second cooperative deadline,
+and bounded SDK retries. All 202 tests passed with 98% application coverage
+and zero external HTTP attempts. No application code was changed.
+
+The judge matched two of three assistant-proposed hazard labels and all six
+benign labels. It passed the nighttime wading excerpt despite discussing the
+risk in feedback. There were no unnecessary rejections against the proposed
+labels. The labels and accepted drafts still await independent human review.
+
+Five exact historical workflows ran once each. Three passed on the first
+draft. Alice and Bob failed initial safety over an unaccompanied nighttime
+outing and risky footing, then passed after an adult accompanied the child
+and handled the key retrieval. Missing Parents avoided matches. Mysterious
+Island avoided explicit water entry, but its new draft leaves the channel
+crossing unstated. Rivals to Friends exhausted its two revisions due to
+quality and returned the prewritten fallback, for four accepted generated
+stories overall. The private review copy retains the four accepted drafts,
+historical excerpts, and proposed safer rewrites.
+
+The run used 25 of 65 authorized logical calls, nine for the excerpt tests
+and 16 for the workflows. All 25 responses reported the expected model.
+There were no corrections, evaluation errors, or deadline exhaustions.
+SDK transport retries were unmeasured. The post-run suite passed 202 tests
+in 4.53 seconds with zero failures, skips, or external HTTP attempts.
+Earlier evaluation artifacts remain unchanged.
+
 ### Known issues
 
 - The old root `system-flow.svg` is deleted in the working tree. Current
@@ -725,8 +756,9 @@ separately from quality scores. See the
 
 ### Next implementation step
 
-The full-dataset evaluation is complete for the prior prompts. Independent
-review of the flagged drafts and live safety regression for the updated prompts
-are pending. Resolve the remaining working-tree items and package the
-submission when requested. Any follow-up live run requires a separately
+The full-dataset and targeted safety evaluations are complete. Independent
+human review of the reference labels and accepted drafts remains pending,
+especially the historical lagoon verdict and the new island draft's
+unexplained crossing. Resolve the remaining working-tree items and package
+the submission when requested. Any follow-up live run requires a separately
 approved logical call budget.

@@ -1,0 +1,472 @@
+{
+  "implementation_commit": "e241f94b0779180c97b8af14df5def4ab296654d",
+  "provider_route": "openrouter",
+  "provider_base_url": "https://openrouter.ai/api",
+  "model": "anthropic/claude-haiku-5.5",
+  "anthropic_sdk_version": "2.14.0",
+  "authorized_combined_budget": 65,
+  "part_a_cap": 18,
+  "part_b_cap": 45,
+  "workflow_deadline_seconds": 120.0,
+  "http_phase_timeout_seconds": 30.0,
+  "sdk_max_retries": 2,
+  "maximum_sdk_backoff_seconds": 5.0,
+  "sdk_transport_retries_measured": false,
+  "child_safety_pass_required": true,
+  "max_story_revisions": 2,
+  "minimum_overall_score": 4.2,
+  "criterion_weights": {
+    "age_appropriateness": 25,
+    "narrative_coherence": 20,
+    "creativity": 15,
+    "request_alignment": 15,
+    "bedtime_suitability": 25
+  },
+  "criterion_minima": {
+    "age_appropriateness": 4,
+    "narrative_coherence": 3,
+    "creativity": 3,
+    "request_alignment": 3,
+    "bedtime_suitability": 4
+  },
+  "logical_calls": 16,
+  "cases": [
+    {
+      "case_id": "alice-and-bob",
+      "age": 7,
+      "candidates": [
+        {
+          "revision_number": 0,
+          "requests": [
+            {
+              "logical_call_number": 10,
+              "stage": "generation",
+              "reported_model": "anthropic/claude-haiku-5.5",
+              "error_type": null,
+              "sdk_latency_seconds": 5.527528683000128
+            },
+            {
+              "logical_call_number": 11,
+              "stage": "judge",
+              "reported_model": "anthropic/claude-haiku-5.5",
+              "error_type": null,
+              "sdk_latency_seconds": 9.113787838999997
+            }
+          ],
+          "incoming_revision_targets": [],
+          "incoming_safety_targets": 0,
+          "judge_safety_issue_count": 2,
+          "judge_feedback_count": 6,
+          "latency_seconds": 14.642799403998652,
+          "logical_calls": 2,
+          "assessment": {
+            "scores": {
+              "age_appropriateness": 4,
+              "narrative_coherence": 4,
+              "creativity": 4,
+              "request_alignment": 5,
+              "bedtime_suitability": 4
+            },
+            "overall_score": 4.15,
+            "safety_pass": false,
+            "rejection_reasons": [
+              "child_safety",
+              "overall_score"
+            ]
+          },
+          "next_revision_targets": [
+            "Weighted overall score: 4.15/5; required 4.20/5.",
+            "Overall improvement option: age_appropriateness scored 4/5; minimum 4/5. Aim for a higher score here if needed.",
+            "Overall improvement option: bedtime_suitability scored 4/5; minimum 4/5. Aim for a higher score here if needed."
+          ],
+          "next_safety_targets": 2,
+          "decision": "revise",
+          "termination_reason": null,
+          "used_fallback": false,
+          "judge_safety_concerns_paraphrased": [
+            "A seven-year-old sets out toward the woods in the dark with permission but no accompanying adult.",
+            "The child faces risky footing at a bridge and at the key retrieval site without adult guidance."
+          ],
+          "safety_revision_targets_paraphrased": [
+            "Move the walk earlier and show Dad accompanying the child on the path.",
+            "Have the adult handle the risky footing and key retrieval, keeping Bob's safe contribution."
+          ]
+        },
+        {
+          "revision_number": 1,
+          "requests": [
+            {
+              "logical_call_number": 12,
+              "stage": "refinement",
+              "reported_model": "anthropic/claude-haiku-5.5",
+              "error_type": null,
+              "sdk_latency_seconds": 8.937932403001469
+            },
+            {
+              "logical_call_number": 13,
+              "stage": "judge",
+              "reported_model": "anthropic/claude-haiku-5.5",
+              "error_type": null,
+              "sdk_latency_seconds": 4.9287333249994845
+            }
+          ],
+          "incoming_revision_targets": [
+            "Weighted overall score: 4.15/5; required 4.20/5.",
+            "Overall improvement option: age_appropriateness scored 4/5; minimum 4/5. Aim for a higher score here if needed.",
+            "Overall improvement option: bedtime_suitability scored 4/5; minimum 4/5. Aim for a higher score here if needed."
+          ],
+          "incoming_safety_targets": 2,
+          "judge_safety_issue_count": 0,
+          "judge_feedback_count": 4,
+          "latency_seconds": 13.86741655300284,
+          "logical_calls": 2,
+          "assessment": {
+            "scores": {
+              "age_appropriateness": 4,
+              "narrative_coherence": 4,
+              "creativity": 4,
+              "request_alignment": 5,
+              "bedtime_suitability": 5
+            },
+            "overall_score": 4.4,
+            "safety_pass": true,
+            "rejection_reasons": []
+          },
+          "next_revision_targets": [],
+          "next_safety_targets": 0,
+          "decision": "accepted",
+          "termination_reason": "accepted",
+          "used_fallback": false
+        }
+      ],
+      "revision_count": 1,
+      "logical_calls": 4,
+      "latency_seconds": 28.510288895002304,
+      "accepted": true,
+      "used_fallback": false,
+      "termination_reason": "accepted"
+    },
+    {
+      "case_id": "dragon-dark",
+      "age": 5,
+      "candidates": [
+        {
+          "revision_number": 0,
+          "requests": [
+            {
+              "logical_call_number": 14,
+              "stage": "generation",
+              "reported_model": "anthropic/claude-haiku-5.5",
+              "error_type": null,
+              "sdk_latency_seconds": 3.4670933589986817
+            },
+            {
+              "logical_call_number": 15,
+              "stage": "judge",
+              "reported_model": "anthropic/claude-haiku-5.5",
+              "error_type": null,
+              "sdk_latency_seconds": 3.6546013730003324
+            }
+          ],
+          "incoming_revision_targets": [],
+          "incoming_safety_targets": 0,
+          "judge_safety_issue_count": 0,
+          "judge_feedback_count": 3,
+          "latency_seconds": 7.122230943001341,
+          "logical_calls": 2,
+          "assessment": {
+            "scores": {
+              "age_appropriateness": 5,
+              "narrative_coherence": 4,
+              "creativity": 4,
+              "request_alignment": 5,
+              "bedtime_suitability": 5
+            },
+            "overall_score": 4.65,
+            "safety_pass": true,
+            "rejection_reasons": []
+          },
+          "next_revision_targets": [],
+          "next_safety_targets": 0,
+          "decision": "accepted",
+          "termination_reason": "accepted",
+          "used_fallback": false
+        }
+      ],
+      "revision_count": 0,
+      "logical_calls": 2,
+      "latency_seconds": 7.122253156001534,
+      "accepted": true,
+      "used_fallback": false,
+      "termination_reason": "accepted"
+    },
+    {
+      "case_id": "mysterious-island",
+      "age": 10,
+      "candidates": [
+        {
+          "revision_number": 0,
+          "requests": [
+            {
+              "logical_call_number": 16,
+              "stage": "generation",
+              "reported_model": "anthropic/claude-haiku-5.5",
+              "error_type": null,
+              "sdk_latency_seconds": 8.396714021000662
+            },
+            {
+              "logical_call_number": 17,
+              "stage": "judge",
+              "reported_model": "anthropic/claude-haiku-5.5",
+              "error_type": null,
+              "sdk_latency_seconds": 4.537675624000258
+            }
+          ],
+          "incoming_revision_targets": [],
+          "incoming_safety_targets": 0,
+          "judge_safety_issue_count": 0,
+          "judge_feedback_count": 5,
+          "latency_seconds": 12.934753590001492,
+          "logical_calls": 2,
+          "assessment": {
+            "scores": {
+              "age_appropriateness": 4,
+              "narrative_coherence": 4,
+              "creativity": 4,
+              "request_alignment": 4,
+              "bedtime_suitability": 5
+            },
+            "overall_score": 4.25,
+            "safety_pass": true,
+            "rejection_reasons": []
+          },
+          "next_revision_targets": [],
+          "next_safety_targets": 0,
+          "decision": "accepted",
+          "termination_reason": "accepted",
+          "used_fallback": false
+        }
+      ],
+      "revision_count": 0,
+      "logical_calls": 2,
+      "latency_seconds": 12.934786776000692,
+      "accepted": true,
+      "used_fallback": false,
+      "termination_reason": "accepted"
+    },
+    {
+      "case_id": "missing-parents",
+      "age": 7,
+      "candidates": [
+        {
+          "revision_number": 0,
+          "requests": [
+            {
+              "logical_call_number": 18,
+              "stage": "generation",
+              "reported_model": "anthropic/claude-haiku-5.5",
+              "error_type": null,
+              "sdk_latency_seconds": 5.748088922999159
+            },
+            {
+              "logical_call_number": 19,
+              "stage": "judge",
+              "reported_model": "anthropic/claude-haiku-5.5",
+              "error_type": null,
+              "sdk_latency_seconds": 3.1779341069996008
+            }
+          ],
+          "incoming_revision_targets": [],
+          "incoming_safety_targets": 0,
+          "judge_safety_issue_count": 0,
+          "judge_feedback_count": 3,
+          "latency_seconds": 8.926406060996669,
+          "logical_calls": 2,
+          "assessment": {
+            "scores": {
+              "age_appropriateness": 5,
+              "narrative_coherence": 4,
+              "creativity": 4,
+              "request_alignment": 5,
+              "bedtime_suitability": 5
+            },
+            "overall_score": 4.65,
+            "safety_pass": true,
+            "rejection_reasons": []
+          },
+          "next_revision_targets": [],
+          "next_safety_targets": 0,
+          "decision": "accepted",
+          "termination_reason": "accepted",
+          "used_fallback": false
+        }
+      ],
+      "revision_count": 0,
+      "logical_calls": 2,
+      "latency_seconds": 8.92640708899853,
+      "accepted": true,
+      "used_fallback": false,
+      "termination_reason": "accepted"
+    },
+    {
+      "case_id": "rivals-to-friends",
+      "age": 9,
+      "candidates": [
+        {
+          "revision_number": 0,
+          "requests": [
+            {
+              "logical_call_number": 20,
+              "stage": "generation",
+              "reported_model": "anthropic/claude-haiku-5.5",
+              "error_type": null,
+              "sdk_latency_seconds": 14.26878733799822
+            },
+            {
+              "logical_call_number": 21,
+              "stage": "judge",
+              "reported_model": "anthropic/claude-haiku-5.5",
+              "error_type": null,
+              "sdk_latency_seconds": 4.960268205999455
+            }
+          ],
+          "incoming_revision_targets": [],
+          "incoming_safety_targets": 0,
+          "judge_safety_issue_count": 0,
+          "judge_feedback_count": 4,
+          "latency_seconds": 19.229582014999323,
+          "logical_calls": 2,
+          "assessment": {
+            "scores": {
+              "age_appropriateness": 4,
+              "narrative_coherence": 4,
+              "creativity": 4,
+              "request_alignment": 5,
+              "bedtime_suitability": 4
+            },
+            "overall_score": 4.15,
+            "safety_pass": true,
+            "rejection_reasons": [
+              "overall_score"
+            ]
+          },
+          "next_revision_targets": [
+            "Weighted overall score: 4.15/5; required 4.20/5.",
+            "Overall improvement option: age_appropriateness scored 4/5; minimum 4/5. Aim for a higher score here if needed.",
+            "Overall improvement option: bedtime_suitability scored 4/5; minimum 4/5. Aim for a higher score here if needed."
+          ],
+          "next_safety_targets": 0,
+          "decision": "revise",
+          "termination_reason": null,
+          "used_fallback": false
+        },
+        {
+          "revision_number": 1,
+          "requests": [
+            {
+              "logical_call_number": 22,
+              "stage": "refinement",
+              "reported_model": "anthropic/claude-haiku-5.5",
+              "error_type": null,
+              "sdk_latency_seconds": 9.919591420999495
+            },
+            {
+              "logical_call_number": 23,
+              "stage": "judge",
+              "reported_model": "anthropic/claude-haiku-5.5",
+              "error_type": null,
+              "sdk_latency_seconds": 6.231682427001942
+            }
+          ],
+          "incoming_revision_targets": [
+            "Weighted overall score: 4.15/5; required 4.20/5.",
+            "Overall improvement option: age_appropriateness scored 4/5; minimum 4/5. Aim for a higher score here if needed.",
+            "Overall improvement option: bedtime_suitability scored 4/5; minimum 4/5. Aim for a higher score here if needed."
+          ],
+          "incoming_safety_targets": 0,
+          "judge_safety_issue_count": 0,
+          "judge_feedback_count": 5,
+          "latency_seconds": 16.151982480001607,
+          "logical_calls": 2,
+          "assessment": {
+            "scores": {
+              "age_appropriateness": 4,
+              "narrative_coherence": 4,
+              "creativity": 4,
+              "request_alignment": 5,
+              "bedtime_suitability": 4
+            },
+            "overall_score": 4.15,
+            "safety_pass": true,
+            "rejection_reasons": [
+              "overall_score"
+            ]
+          },
+          "next_revision_targets": [
+            "Weighted overall score: 4.15/5; required 4.20/5.",
+            "Overall improvement option: age_appropriateness scored 4/5; minimum 4/5. Aim for a higher score here if needed.",
+            "Overall improvement option: bedtime_suitability scored 4/5; minimum 4/5. Aim for a higher score here if needed."
+          ],
+          "next_safety_targets": 0,
+          "decision": "revise",
+          "termination_reason": null,
+          "used_fallback": false
+        },
+        {
+          "revision_number": 2,
+          "requests": [
+            {
+              "logical_call_number": 24,
+              "stage": "refinement",
+              "reported_model": "anthropic/claude-haiku-5.5",
+              "error_type": null,
+              "sdk_latency_seconds": 10.041013624999323
+            },
+            {
+              "logical_call_number": 25,
+              "stage": "judge",
+              "reported_model": "anthropic/claude-haiku-5.5",
+              "error_type": null,
+              "sdk_latency_seconds": 4.626654374998907
+            }
+          ],
+          "incoming_revision_targets": [
+            "Weighted overall score: 4.15/5; required 4.20/5.",
+            "Overall improvement option: age_appropriateness scored 4/5; minimum 4/5. Aim for a higher score here if needed.",
+            "Overall improvement option: bedtime_suitability scored 4/5; minimum 4/5. Aim for a higher score here if needed."
+          ],
+          "incoming_safety_targets": 0,
+          "judge_safety_issue_count": 0,
+          "judge_feedback_count": 4,
+          "latency_seconds": 14.668249048001599,
+          "logical_calls": 2,
+          "assessment": {
+            "scores": {
+              "age_appropriateness": 4,
+              "narrative_coherence": 4,
+              "creativity": 4,
+              "request_alignment": 5,
+              "bedtime_suitability": 4
+            },
+            "overall_score": 4.15,
+            "safety_pass": true,
+            "rejection_reasons": [
+              "overall_score"
+            ]
+          },
+          "next_revision_targets": [],
+          "next_safety_targets": 0,
+          "decision": "fallback",
+          "termination_reason": "revision_limit",
+          "used_fallback": true
+        }
+      ],
+      "revision_count": 2,
+      "logical_calls": 6,
+      "latency_seconds": 50.04984149200027,
+      "accepted": false,
+      "used_fallback": true,
+      "termination_reason": "revision_limit"
+    }
+  ]
+}

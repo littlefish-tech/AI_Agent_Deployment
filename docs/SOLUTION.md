@@ -311,6 +311,24 @@ missed hazards, unnecessary rejections, and whether revisions resolve the
 hazard while preserving the story. Keep those results separate from the
 earlier live reports.
 
+The [approved targeted safety regression](../evaluations/safety-regression-e241f94/REPORT.md)
+at `e241f94b0779180c97b8af14df5def4ab296654d` ran those comparisons through
+Claude Haiku 5.5 on OpenRouter. The judge failed the child-led boating rescue
+and match-lighting excerpts, passed the nighttime wading excerpt while
+mentioning the hazard in feedback, and passed all six benign examples.
+The reference labels were assistant-proposed and await independent review.
+
+In five fresh workflows, the judge rejected an unaccompanied nighttime
+outing and risky footing in Alice and Bob. The revision showed Dad
+accompanying Alice, checking the bridge, and retrieving the key. The new
+Missing Parents draft avoided matches. The new Mysterious Island draft
+avoided explicit water entry but left the crossing to a lighthouse
+unexplained. Rivals to Friends reached the fallback on quality grounds.
+The run used 25 of 65 authorized logical calls, with no judge corrections
+or evaluation errors. No prompt or runtime code was changed during the
+evaluation. Independent review is pending for the lagoon judgment and
+the accepted drafts.
+
 ### Historical baseline
 
 The historical consolidated run reused three valid pilot cases and added

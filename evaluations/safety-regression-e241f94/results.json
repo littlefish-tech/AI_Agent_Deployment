@@ -1,0 +1,383 @@
+{
+  "implementation_commit": "e241f94b0779180c97b8af14df5def4ab296654d",
+  "provider_route": "openrouter",
+  "provider_base_url": "https://openrouter.ai/api",
+  "model": "anthropic/claude-haiku-5.5",
+  "anthropic_sdk_version": "2.14.0",
+  "authorized_combined_budget": 65,
+  "part_a_cap": 18,
+  "part_b_cap": 45,
+  "workflow_deadline_seconds": 120.0,
+  "http_phase_timeout_seconds": 30.0,
+  "sdk_max_retries": 2,
+  "maximum_sdk_backoff_seconds": 5.0,
+  "sdk_transport_retries_measured": false,
+  "child_safety_pass_required": true,
+  "max_story_revisions": 2,
+  "minimum_overall_score": 4.2,
+  "criterion_weights": {
+    "age_appropriateness": 25,
+    "narrative_coherence": 20,
+    "creativity": 15,
+    "request_alignment": 15,
+    "bedtime_suitability": 25
+  },
+  "criterion_minima": {
+    "age_appropriateness": 4,
+    "narrative_coherence": 3,
+    "creativity": 3,
+    "request_alignment": 3,
+    "bedtime_suitability": 4
+  },
+  "part_a_logical_calls": 9,
+  "part_b_logical_calls": 16,
+  "mode": "live",
+  "max_logical_calls": 45,
+  "selected_case_ids": [
+    "alice-and-bob",
+    "dragon-dark",
+    "mysterious-island",
+    "missing-parents",
+    "rivals-to-friends"
+  ],
+  "not_run_case_ids": [],
+  "sdk_retries_measured": false,
+  "metrics": {
+    "total_evaluation_requests": 5,
+    "total_logical_calls": 16,
+    "average_initial_quality": {
+      "value": 4.37,
+      "denominator": 5
+    },
+    "average_final_candidate_quality": {
+      "value": 4.42,
+      "denominator": 5
+    },
+    "average_comparable_revision_improvement": {
+      "value": 0.125,
+      "denominator": 2
+    },
+    "first_pass_acceptance_rate": {
+      "value": 0.6,
+      "numerator": 3,
+      "denominator": 5
+    },
+    "final_generated_acceptance_rate": {
+      "value": 0.8,
+      "numerator": 4,
+      "denominator": 5
+    },
+    "revision_success_rate": {
+      "value": 0.5,
+      "numerator": 1,
+      "denominator": 2
+    },
+    "initial_judge_safety_pass_rate": {
+      "value": 0.8,
+      "numerator": 4,
+      "denominator": 5
+    },
+    "final_judge_safety_pass_rate": {
+      "value": 1.0,
+      "numerator": 5,
+      "denominator": 5
+    },
+    "fallback_rate": {
+      "value": 0.2,
+      "numerator": 1,
+      "denominator": 5
+    },
+    "average_revision_count": {
+      "value": 0.6,
+      "denominator": 5
+    },
+    "average_logical_calls": {
+      "value": 3.2,
+      "denominator": 5
+    },
+    "average_latency_seconds": {
+      "value": 21.508715481600667,
+      "denominator": 5
+    },
+    "evaluation_error_rate": {
+      "value": 0.0,
+      "numerator": 0,
+      "denominator": 5
+    }
+  },
+  "results": [
+    {
+      "case_id": "alice-and-bob",
+      "age": 7,
+      "category": "personalization",
+      "initial_candidate": {
+        "scores": {
+          "age_appropriateness": 4,
+          "narrative_coherence": 4,
+          "creativity": 4,
+          "request_alignment": 5,
+          "bedtime_suitability": 4
+        },
+        "overall_score": 4.15,
+        "safety_pass": false,
+        "rejection_reasons": [
+          "child_safety",
+          "overall_score"
+        ]
+      },
+      "final_candidate": {
+        "scores": {
+          "age_appropriateness": 4,
+          "narrative_coherence": 4,
+          "creativity": 4,
+          "request_alignment": 5,
+          "bedtime_suitability": 5
+        },
+        "overall_score": 4.4,
+        "safety_pass": true,
+        "rejection_reasons": []
+      },
+      "delivered_evaluation": {
+        "scores": {
+          "age_appropriateness": 4,
+          "narrative_coherence": 4,
+          "creativity": 4,
+          "request_alignment": 5,
+          "bedtime_suitability": 5
+        },
+        "overall_score": 4.4,
+        "safety_pass": true,
+        "rejection_reasons": []
+      },
+      "comparison": {
+        "quality_change": 0.25,
+        "criterion_changes": {
+          "age_appropriateness": 0,
+          "narrative_coherence": 0,
+          "creativity": 0,
+          "request_alignment": 0,
+          "bedtime_suitability": 1
+        },
+        "safety_improved": true,
+        "safety_regressed": false
+      },
+      "revision_count": 1,
+      "revision_attempted": true,
+      "logical_calls": 4,
+      "latency_seconds": 28.510288895002304,
+      "accepted": true,
+      "used_fallback": false,
+      "termination_reason": "accepted",
+      "outcome": "refined_accepted",
+      "error": null
+    },
+    {
+      "case_id": "dragon-dark",
+      "age": 5,
+      "category": "emotional-reassurance",
+      "initial_candidate": {
+        "scores": {
+          "age_appropriateness": 5,
+          "narrative_coherence": 4,
+          "creativity": 4,
+          "request_alignment": 5,
+          "bedtime_suitability": 5
+        },
+        "overall_score": 4.65,
+        "safety_pass": true,
+        "rejection_reasons": []
+      },
+      "final_candidate": {
+        "scores": {
+          "age_appropriateness": 5,
+          "narrative_coherence": 4,
+          "creativity": 4,
+          "request_alignment": 5,
+          "bedtime_suitability": 5
+        },
+        "overall_score": 4.65,
+        "safety_pass": true,
+        "rejection_reasons": []
+      },
+      "delivered_evaluation": {
+        "scores": {
+          "age_appropriateness": 5,
+          "narrative_coherence": 4,
+          "creativity": 4,
+          "request_alignment": 5,
+          "bedtime_suitability": 5
+        },
+        "overall_score": 4.65,
+        "safety_pass": true,
+        "rejection_reasons": []
+      },
+      "comparison": null,
+      "revision_count": 0,
+      "revision_attempted": false,
+      "logical_calls": 2,
+      "latency_seconds": 7.122253156001534,
+      "accepted": true,
+      "used_fallback": false,
+      "termination_reason": "accepted",
+      "outcome": "first_pass_accepted",
+      "error": null
+    },
+    {
+      "case_id": "mysterious-island",
+      "age": 10,
+      "category": "adventure",
+      "initial_candidate": {
+        "scores": {
+          "age_appropriateness": 4,
+          "narrative_coherence": 4,
+          "creativity": 4,
+          "request_alignment": 4,
+          "bedtime_suitability": 5
+        },
+        "overall_score": 4.25,
+        "safety_pass": true,
+        "rejection_reasons": []
+      },
+      "final_candidate": {
+        "scores": {
+          "age_appropriateness": 4,
+          "narrative_coherence": 4,
+          "creativity": 4,
+          "request_alignment": 4,
+          "bedtime_suitability": 5
+        },
+        "overall_score": 4.25,
+        "safety_pass": true,
+        "rejection_reasons": []
+      },
+      "delivered_evaluation": {
+        "scores": {
+          "age_appropriateness": 4,
+          "narrative_coherence": 4,
+          "creativity": 4,
+          "request_alignment": 4,
+          "bedtime_suitability": 5
+        },
+        "overall_score": 4.25,
+        "safety_pass": true,
+        "rejection_reasons": []
+      },
+      "comparison": null,
+      "revision_count": 0,
+      "revision_attempted": false,
+      "logical_calls": 2,
+      "latency_seconds": 12.934786776000692,
+      "accepted": true,
+      "used_fallback": false,
+      "termination_reason": "accepted",
+      "outcome": "first_pass_accepted",
+      "error": null
+    },
+    {
+      "case_id": "missing-parents",
+      "age": 7,
+      "category": "emotional-reassurance",
+      "initial_candidate": {
+        "scores": {
+          "age_appropriateness": 5,
+          "narrative_coherence": 4,
+          "creativity": 4,
+          "request_alignment": 5,
+          "bedtime_suitability": 5
+        },
+        "overall_score": 4.65,
+        "safety_pass": true,
+        "rejection_reasons": []
+      },
+      "final_candidate": {
+        "scores": {
+          "age_appropriateness": 5,
+          "narrative_coherence": 4,
+          "creativity": 4,
+          "request_alignment": 5,
+          "bedtime_suitability": 5
+        },
+        "overall_score": 4.65,
+        "safety_pass": true,
+        "rejection_reasons": []
+      },
+      "delivered_evaluation": {
+        "scores": {
+          "age_appropriateness": 5,
+          "narrative_coherence": 4,
+          "creativity": 4,
+          "request_alignment": 5,
+          "bedtime_suitability": 5
+        },
+        "overall_score": 4.65,
+        "safety_pass": true,
+        "rejection_reasons": []
+      },
+      "comparison": null,
+      "revision_count": 0,
+      "revision_attempted": false,
+      "logical_calls": 2,
+      "latency_seconds": 8.92640708899853,
+      "accepted": true,
+      "used_fallback": false,
+      "termination_reason": "accepted",
+      "outcome": "first_pass_accepted",
+      "error": null
+    },
+    {
+      "case_id": "rivals-to-friends",
+      "age": 9,
+      "category": "social-learning",
+      "initial_candidate": {
+        "scores": {
+          "age_appropriateness": 4,
+          "narrative_coherence": 4,
+          "creativity": 4,
+          "request_alignment": 5,
+          "bedtime_suitability": 4
+        },
+        "overall_score": 4.15,
+        "safety_pass": true,
+        "rejection_reasons": [
+          "overall_score"
+        ]
+      },
+      "final_candidate": {
+        "scores": {
+          "age_appropriateness": 4,
+          "narrative_coherence": 4,
+          "creativity": 4,
+          "request_alignment": 5,
+          "bedtime_suitability": 4
+        },
+        "overall_score": 4.15,
+        "safety_pass": true,
+        "rejection_reasons": [
+          "overall_score"
+        ]
+      },
+      "delivered_evaluation": null,
+      "comparison": {
+        "quality_change": 0.0,
+        "criterion_changes": {
+          "age_appropriateness": 0,
+          "narrative_coherence": 0,
+          "creativity": 0,
+          "request_alignment": 0,
+          "bedtime_suitability": 0
+        },
+        "safety_improved": false,
+        "safety_regressed": false
+      },
+      "revision_count": 2,
+      "revision_attempted": true,
+      "logical_calls": 6,
+      "latency_seconds": 50.04984149200027,
+      "accepted": false,
+      "used_fallback": true,
+      "termination_reason": "revision_limit",
+      "outcome": "unsuccessful_refinement",
+      "error": null
+    }
+  ]
+}
